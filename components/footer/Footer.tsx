@@ -1,67 +1,92 @@
 import Link from "next/link";
 
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/sales", label: "Flash Sales" },
-  { href: "/orders", label: "Orders" },
+import { Container } from "@/components/ui/Section";
+
+const groups = [
+  {
+    heading: "Shop",
+    links: [
+      { href: "/sales", label: "Flash Sales" },
+      { href: "/cart", label: "Cart" },
+      { href: "/orders", label: "My Orders" },
+    ],
+  },
+  {
+    heading: "Account",
+    links: [
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/login", label: "Sign in" },
+      { href: "/register", label: "Create account" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/privacy", label: "Privacy Policy" },
+    ],
+  },
 ];
 
 export default function Footer() {
   return (
     <footer className="mt-auto border-t border-slate-200 bg-white">
+      <Container className="py-14">
 
-      <div className="mx-auto max-w-5xl px-6 py-10">
+        <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(3,1fr)]">
 
-        <div className="flex flex-col justify-between gap-8 md:flex-row">
-
-          {/* Project Name */}
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">
-              ⚡ FlashX
-            </h2>
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-orange-400 to-orange-600 text-base shadow-sm shadow-orange-500/30"
+              >
+                ⚡
+              </span>
+              FlashX
+            </Link>
 
-            <p className="mt-2 max-w-md text-slate-600">
-              High-Concurrency Flash Sale &amp; Inventory Engine
-              built for fast and reliable flash sale processing.
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-600">
+              A high-concurrency flash sale and inventory engine. Atomic Redis
+              reservations, asynchronous order persistence, zero overselling.
             </p>
           </div>
 
+          {groups.map((group) => (
+            <div key={group.heading}>
+              <h3 className="text-sm font-semibold text-slate-900">
+                {group.heading}
+              </h3>
 
-          {/* Navigation */}
-          <div>
-            <h3 className="mb-3 font-semibold text-slate-900">
-              Quick Links
-            </h3>
-
-            <div className="flex flex-col gap-2">
-
-              {links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-slate-600 hover:text-slate-900"
-                >
-                  {link.label}
-                </Link>
-              ))}
-
+              <ul className="mt-4 space-y-2.5">
+                {group.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="text-sm text-slate-600 transition-colors hover:text-slate-900"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-
+          ))}
         </div>
 
-
-        {/* Bottom Section */}
-        <div className="mt-8 border-t border-slate-200 pt-6 text-center">
-
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-6 sm:flex-row">
           <p className="text-sm text-slate-500">
             © 2026 FlashX. All rights reserved.
           </p>
-
+          <p className="text-xs text-slate-400">
+            Built with Next.js 16, React 19, and Tailwind CSS 4.
+          </p>
         </div>
 
-      </div>
-
+      </Container>
     </footer>
   );
 }

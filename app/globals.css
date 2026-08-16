@@ -8,17 +8,83 @@
 :root {
   --background: #f8fafc; /* slate-50  */
   --foreground: #0f172a; /* slate-900 */
+
+  /* Brand ramp. Blue carries the product/system voice, orange the flash-sale
+     urgency. Kept as tokens so a rebrand is one block, not a find-and-replace. */
+  --brand: #2563eb; /* blue-600   */
+  --brand-strong: #1d4ed8; /* blue-700   */
+  --flash: #f97316; /* orange-500 */
+  --flash-strong: #ea580c; /* orange-600 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-flash: var(--flash);
+  --color-flash-strong: var(--flash-strong);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Named so components read `animate-rise` rather than repeating timings. */
+  --animate-rise: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Entrance animation for cards and page sections. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The "live" indicator next to anything backed by a running sale. */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+/* Travelling highlight on stock bars — signals a counter that moves. */
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/*
+ * Honour the OS "reduce motion" setting. The animations above are decorative;
+ * none of them communicate anything the static layout doesn't already show.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

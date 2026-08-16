@@ -1,84 +1,93 @@
+import Link from "next/link";
+
+import { discountPercent, formatPrice } from "@/app/lib/format";
+import { SaleStatusBadge } from "@/components/ui/Badge";
+import StockBar from "@/components/ui/StockBar";
+import AddToCartButton from "@/components/cart/AddToCartButton";
 import { Product } from "@/types/product";
 
-type FlashSaleCardProps = {
-  product: Product;
-};
-
-export default function FlashSaleCard({ product }: FlashSaleCardProps) {
-
-  // Guard against totalStock === 0, which would make this NaN and emit `width: NaN%`.
-  const stockPercentage =
-    product.totalStock > 0
-      ? Math.min(100, Math.max(0, (product.remainingStock / product.totalStock) * 100))
-      : 0;
-
+export default function FlashSaleCard({ product }: { product: Product }) {
   const soldOut = product.remainingStock <= 0;
-
-  const discount =
-    product.originalPrice > 0
-      ? Math.round(
-          ((product.originalPrice - product.salePrice) / product.originalPrice) * 100,
-        )
-      : 0;
+  const scheduled = product.status === "SCHEDULED";
+  const discount = discountPercent(product.originalPrice, product.salePrice);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-900/5">
 
-      <div className="mb-3 flex items-center justify-between">
+      {/* Image stand-in. The seed catalogue has no photography, so the emoji
+          carries the product identity on a tinted field. */}
+      <Link
+        href={`/sales/${product.sku}`}
+        className="relative flex h-44 items-center justify-center bg-linear-to-br from-slate-100 to-slate-200"
+      >
+        <span
+          aria-hidden="true"
+          className="text-6xl transition-transform duration-300 group-hover:scale-110"
+        >
+          {product.emoji}
+        </span>
 
-        <p className="text-sm font-semibold tracking-wide text-orange-600">
-          {soldOut ? "SOLD OUT" : "LIVE DEAL"}
-        </p>
+        <div className="absolute left-4 top-4">
+          <SaleStatusBadge status={product.status} />
+        </div>
 
         {discount > 0 && (
-          <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700 ring-1 ring-green-200">
-            -{discount}%
-          </span>
+          <div className="absolute right-4 top-4 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
+            −{discount}%
+          </div>
         )}
+      </Link>
 
+      <div className="flex flex-1 flex-col p-6">
+
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          {product.category}
+        </p>
+
+        <h3 className="mt-1.5 text-lg font-bold tracking-tight text-slate-900">
+          <Link href={`/sales/${product.sku}`} className="hover:text-blue-600">
+            {product.name}
+          </Link>
+        </h3>
+
+        <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+          {product.tagline}
+        </p>
+
+        <div className="mt-4 flex items-baseline gap-2.5">
+          <span className="text-2xl font-bold text-slate-900">
+            {formatPrice(product.salePrice)}
+          </span>
+          <span className="text-sm text-slate-400 line-through">
+            {formatPrice(product.originalPrice)}
+          </span>
+        </div>
+
+        {/* mt-auto pins the stock bar and action to the bottom so cards of
+            different text lengths still line up in the grid. */}
+        <div className="mt-auto pt-5">
+          <StockBar
+            remaining={product.remainingStock}
+            total={product.totalStock}
+          />
+
+          <div className="mt-4">
+            {scheduled ? (
+              <p className="rounded-xl bg-slate-50 py-2.5 text-center text-sm font-semibold text-slate-500">
+                Not started yet
+              </p>
+            ) : (
+              <AddToCartButton
+                sku={product.sku}
+                disabled={soldOut}
+                variant="flash"
+                fullWidth
+                label={soldOut ? "Sold out" : "Add to cart"}
+              />
+            )}
+          </div>
+        </div>
       </div>
-
-      <h2 className="text-3xl font-bold text-slate-900">
-        {product.name}
-      </h2>
-
-      <div className="mt-4 flex items-baseline gap-4">
-
-        <span className="text-slate-400 line-through">
-          ${product.originalPrice}
-        </span>
-
-        <span className="text-3xl font-bold text-green-600">
-          ${product.salePrice}
-        </span>
-
-      </div>
-
-      <p className="mt-5 text-sm text-slate-600">
-        <span className="font-semibold text-slate-900">
-          {product.remainingStock}
-        </span>{" "}
-        of {product.totalStock} items remaining
-      </p>
-
-      <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-slate-200">
-
-        <div
-          className="h-3 rounded-full bg-orange-500"
-          style={{
-            width: `${stockPercentage}%`,
-          }}
-        />
-
-      </div>
-
-      <button
-        disabled={soldOut}
-        className="mt-6 w-full rounded-xl bg-orange-500 py-4 font-bold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
-      >
-        {soldOut ? "Sold Out" : "Buy Now ⚡"}
-      </button>
-
-    </div>
+    </article>
   );
 }
