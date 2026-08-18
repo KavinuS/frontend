@@ -11,8 +11,11 @@ import TextField from "./TextField";
 
 export default function LoginForm({
   googleEnabled,
+  next,
 }: {
   googleEnabled: boolean;
+  /** Where to land after signing in, e.g. /admin. Validated server-side. */
+  next?: string;
 }) {
   const [state, action, pending] = useActionState(login, undefined);
 
@@ -24,6 +27,10 @@ export default function LoginForm({
       <Divider label="or" />
 
       <form action={action} className="space-y-5" noValidate>
+
+        {/* Carried through the form rather than read from the URL inside the
+            action: a Server Action has no access to the caller's search params. */}
+        {next && <input type="hidden" name="next" value={next} />}
 
         <FormBanner message={state?.message} />
 

@@ -25,7 +25,18 @@ export type AuthSuccess = {
 
 export type ApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: number; message: string };
+  | {
+      ok: false;
+      status: number;
+      message: string;
+      /**
+       * The backend's machine-readable `ErrorResponse.code` (SKU_TAKEN,
+       * LAST_ADMIN, ILLEGAL_TRANSITION, ...). Optional because the transport
+       * failures below have no server-side code to report. Admin screens branch
+       * on this instead of matching on message text, which is prose and changes.
+       */
+      code?: string;
+    };
 
 /** Distinguishes "backend said no" from "backend isn't there", which need different copy. */
 const NOT_CONFIGURED = -1;

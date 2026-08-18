@@ -9,6 +9,7 @@ import {
   RegisterFormSchema,
   type AuthFormState,
 } from "@/app/lib/definitions";
+import { safeRedirectPath } from "@/app/lib/redirects";
 import { createSession, deleteSession } from "@/app/lib/session";
 
 /**
@@ -105,7 +106,10 @@ export async function login(
   const sessionError = await startSession(result.data);
   if (sessionError) return { message: sessionError, values };
 
-  redirect("/dashboard");
+  // Where the user was heading before being asked to sign in. Validated, never
+  // used raw - see safeRedirectPath for why this is the one redirect on the
+  // site worth guarding.
+  redirect(safeRedirectPath(formData.get("next")));
 }
 
 /**

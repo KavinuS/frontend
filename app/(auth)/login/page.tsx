@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   description: "Sign in to FlashX to track your flash sale orders in real time.",
 };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: PageProps<"/login">) {
+  const { next } = await searchParams;
+
   return (
     <AuthShell
       title="Welcome back"
@@ -27,7 +31,10 @@ export default function LoginPage() {
         </>
       }
     >
-      <LoginForm googleEnabled={isBackendConfigured()} />
+      <LoginForm
+        googleEnabled={isBackendConfigured()}
+        next={typeof next === "string" ? next : undefined}
+      />
     </AuthShell>
   );
 }
