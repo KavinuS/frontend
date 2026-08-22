@@ -4,16 +4,19 @@ import Link from "next/link";
 
 import { useCart } from "@/app/lib/cart-context";
 import { formatDateTime, formatPrice, shortId } from "@/app/lib/format";
-import { useOrders } from "@/app/lib/orders-store";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/Section";
+import type { Order } from "@/types/order";
 
-export default function DashboardView() {
-  const { orders, hydrated } = useOrders();
+/**
+ * Orders arrive from the server; the cart is still client-side, so this stays a
+ * Client Component and only waits on the cart to hydrate.
+ */
+export default function DashboardView({ orders }: { orders: Order[] }) {
   const { itemCount, hydrated: cartHydrated } = useCart();
 
-  if (!hydrated || !cartHydrated) {
+  if (!cartHydrated) {
     return (
       <div className="space-y-6">
         <div className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-white" />

@@ -1,14 +1,17 @@
 import Link from "next/link";
 
-import { upcomingProducts } from "@/Data/product";
 import { discountPercent, formatPrice } from "@/app/lib/format";
+import type { Product } from "@/types/product";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container, SectionHeading } from "@/components/ui/Section";
 
-export default function UpcomingDeals() {
-  const upcoming = upcomingProducts();
-
+/**
+ * Scheduled drops. The list is passed in rather than fetched here so the page
+ * makes one catalogue call and slices it, instead of every section issuing its
+ * own request for the same board.
+ */
+export default function UpcomingDeals({ upcoming }: { upcoming: Product[] }) {
   // Nothing scheduled is a legitimate state — drop the section rather than
   // render an empty grid under a heading.
   if (upcoming.length === 0) return null;

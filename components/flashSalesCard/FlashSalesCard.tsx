@@ -78,7 +78,7 @@ export default function FlashSaleCard({ product }: { product: Product }) {
               </p>
             ) : (
               <AddToCartButton
-                sku={product.sku}
+                flashSaleId={product.id}
                 disabled={soldOut}
                 variant="flash"
                 fullWidth

@@ -2,40 +2,62 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { findProductBySku, products } from "@/Data/product";
+import { getFlashSaleBySku } from "@/app/lib/catalog";
 import { discountPercent, formatPrice } from "@/app/lib/format";
 import AddToCartPanel from "@/components/cart/AddToCartPanel";
 import Countdown from "@/components/sales/Countdown";
 import { Badge, SaleStatusBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { Container } from "@/components/ui/Section";
+import { Container, EmptyState } from "@/components/ui/Section";
 import StockBar from "@/components/ui/StockBar";
 
-/** Prerenders every catalogue entry at build time. */
-export function generateStaticParams() {
-  return products.map((product) => ({ sku: product.sku }));
-}
+/*
+ * `generateStaticParams` was removed deliberately.
+ *
+ * Prerendering this page would freeze `remainingStock` and `status` at build
+ * time, so a sold-out sale would keep advertising stock until the next deploy.
+ * Stock is the entire subject of the page; serving a stale copy of it is worse
+ * than serving it a few milliseconds slower.
+ */
 
 export async function generateMetadata(
   props: PageProps<"/sales/[sku]">,
 ): Promise<Metadata> {
   const { sku } = await props.params;
-  const product = findProductBySku(sku);
+  const result = await getFlashSaleBySku(sku);
 
-  if (!product) return { title: "Sale not found — FlashX" };
+  if (!result.ok) return { title: "Sale not found — FlashX" };
 
   return {
-    title: `${product.name} — FlashX`,
-    description: product.tagline,
+    title: `${result.data.name} — FlashX`,
+    description: result.data.tagline,
   };
 }
 
 export default async function SaleDetailPage(props: PageProps<"/sales/[sku]">) {
   const { sku } = await props.params;
-  const product = findProductBySku(sku);
+  const result = await getFlashSaleBySku(sku);
 
-  // Unknown SKU renders the 404 page rather than an empty shell.
-  if (!product) notFound();
+  // An unknown SKU renders the 404 page rather than an empty shell. A backend
+  // that is merely down is NOT a 404 — that would tell the customer the product
+  // does not exist, so it surfaces as an error instead.
+  if (!result.ok) {
+    if (result.status === 404) notFound();
+
+    return (
+      <Container className="py-20">
+        <EmptyState
+          icon="🔌"
+          title="Can't load this sale"
+          description={result.message}
+          actionLabel="Back to flash sales"
+          actionHref="/sales"
+        />
+      </Container>
+    );
+  }
+
+  const product = result.data;
 
   const soldOut = product.remainingStock <= 0;
   const scheduled = product.status === "SCHEDULED";
@@ -114,7 +136,10 @@ export default async function SaleDetailPage(props: PageProps<"/sales/[sku]">) {
                   This sale hasn&apos;t started yet
                 </p>
               ) : (
-                <AddToCartPanel sku={product.sku} soldOut={soldOut} />
+                <AddToCartPanel
+                  flashSaleId={product.id}
+                  soldOut={soldOut}
+                />
               )}
 
               {!scheduled && !soldOut && (

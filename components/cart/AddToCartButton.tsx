@@ -15,7 +15,7 @@ import { Button, type ButtonVariant } from "@/components/ui/Button";
  * is a small lie the user would only discover at checkout.
  */
 export default function AddToCartButton({
-  sku,
+  flashSaleId,
   quantity = 1,
   disabled = false,
   label = "Add to cart",
@@ -24,7 +24,8 @@ export default function AddToCartButton({
   fullWidth = false,
   onAdded,
 }: {
-  sku: string;
+  /** The sale to reserve against, not the product. See cart-store.ts. */
+  flashSaleId: number;
   quantity?: number;
   disabled?: boolean;
   label?: string;
@@ -46,7 +47,7 @@ export default function AddToCartButton({
   }, []);
 
   const handleClick = () => {
-    const result = addItem(sku, quantity);
+    const result = addItem(flashSaleId, quantity);
     setFeedback(result);
     onAdded?.(result);
 
@@ -107,7 +108,9 @@ function describe(result: AddResult): string {
       return result.limit < MAX_PER_ITEM
         ? `That's all the stock left (${result.limit}).`
         : `Limit ${result.limit} per customer.`;
-    case "UNKNOWN_SKU":
-      return "This item is no longer available.";
+    case "CLOSED":
+      return "This sale has closed.";
+    case "UNKNOWN_SALE":
+      return "This sale is no longer available.";
   }
 }

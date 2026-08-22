@@ -11,10 +11,12 @@ import {
 import {
   addItem as addItemTo,
   cartStore,
+  limitFor as limitForIn,
   removeItem as removeItemFrom,
   setQuantity as setQuantityIn,
   toLines,
   type AddResult,
+  type Catalogue,
   type CartItem,
   type CartLine,
 } from "./cart-store";
@@ -33,6 +35,10 @@ import { useIsClient } from "./local-store";
  * render (React 19's `set-state-in-effect` rule rejects it) and would drop the
  * cross-tab sync. Context is the distribution mechanism; the store is the
  * source of truth.
+ *
+ * The catalogue arrives as a prop from the shop layout, which fetches it on the
+ * server. Only the cart itself (skus and quantities) lives in the browser; the
+ * prices and stock it is joined against are never client-authored.
  */
 
 export type CartContextValue = {
@@ -43,16 +49,32 @@ export type CartContextValue = {
   savings: number;
   /** False on the server and during hydration — show a skeleton, not "empty". */
   hydrated: boolean;
+  /*
+   * Every one of these takes a FLASH SALE id, not a SKU. A SKU names a product,
+   * and a product can be on sale more than once; a reservation goes against one
+   * specific Redis counter, so the counter is what the cart addresses.
+   */
   /** Returns what actually happened so callers can report it. */
-  addItem: (sku: string, quantity?: number) => AddResult;
-  setQuantity: (sku: string, quantity: number) => void;
-  removeItem: (sku: string) => void;
+  addItem: (flashSaleId: number, quantity?: number) => AddResult;
+  setQuantity: (flashSaleId: number, quantity: number) => void;
+  removeItem: (flashSaleId: number) => void;
   clear: () => void;
+  /** Live ceiling for a sale. Exposed so a detail page can size its stepper. */
+  limitFor: (flashSaleId: number) => number;
+  /** Quantity already held for a sale, for the same reason. */
+  quantityOf: (flashSaleId: number) => number;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export function CartProvider({
+  catalogue,
+  children,
+}: {
+  /** Live sales from the server. Empty when the backend is unreachable. */
+  catalogue: Catalogue;
+  children: React.ReactNode;
+}) {
   const items = useSyncExternalStore(
     cartStore.subscribe,
     cartStore.getSnapshot,
@@ -66,10 +88,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
    * `items`. Two clicks in the same tick would otherwise both start from the
    * stale render value and the second would clobber the first.
    */
-  const addItem = useCallback((sku: string, quantity = 1): AddResult => {
+  const addItem = useCallback(
+    (flashSaleId: number, quantity = 1): AddResult => {
     const { items: next, result } = addItemTo(
+      catalogue,
       cartStore.getSnapshot(),
-      sku,
+      flashSaleId,
       quantity,
     );
 
@@ -78,20 +102,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (result.ok) cartStore.set(next);
 
     return result;
-  }, []);
+    },
+    [catalogue],
+  );
 
-  const setQuantity = useCallback((sku: string, quantity: number) => {
-    cartStore.set(setQuantityIn(cartStore.getSnapshot(), sku, quantity));
-  }, []);
+  const setQuantity = useCallback(
+    (flashSaleId: number, quantity: number) => {
+      cartStore.set(
+        setQuantityIn(catalogue, cartStore.getSnapshot(), flashSaleId, quantity),
+      );
+    },
+    [catalogue],
+  );
 
-  const removeItem = useCallback((sku: string) => {
-    cartStore.set(removeItemFrom(cartStore.getSnapshot(), sku));
+  const removeItem = useCallback((flashSaleId: number) => {
+    cartStore.set(removeItemFrom(cartStore.getSnapshot(), flashSaleId));
   }, []);
 
   const clear = useCallback(() => cartStore.set([]), []);
 
+  const limitFor = useCallback(
+    (flashSaleId: number) => limitForIn(catalogue, flashSaleId),
+    [catalogue],
+  );
+
+  const quantityOf = useCallback(
+    (flashSaleId: number) =>
+      items.find((item) => item.flashSaleId === flashSaleId)?.quantity ?? 0,
+    [items],
+  );
+
   const value = useMemo<CartContextValue>(() => {
-    const lines = toLines(items);
+    const lines = toLines(catalogue, items);
 
     return {
       items,
@@ -108,8 +150,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setQuantity,
       removeItem,
       clear,
+      limitFor,
+      quantityOf,
     };
-  }, [items, hydrated, addItem, setQuantity, removeItem, clear]);
+  }, [
+    catalogue,
+    items,
+    hydrated,
+    addItem,
+    setQuantity,
+    removeItem,
+    clear,
+    limitFor,
+    quantityOf,
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
@@ -128,4 +182,4 @@ export function useCart() {
 }
 
 export { MAX_PER_ITEM } from "./cart-store";
-export type { CartItem, CartLine, AddResult } from "./cart-store";
+export type { CartItem, CartLine, AddResult, Catalogue } from "./cart-store";

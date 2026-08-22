@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { liveProducts, upcomingProducts } from "@/Data/product";
+import { listFlashSales, liveOnly, upcomingOnly } from "@/app/lib/catalog";
 import FlashSaleCard from "@/components/flashSalesCard/FlashSalesCard";
 import UpcomingDeals from "@/components/upcomingDeals/UpcomingDeals";
 import { Badge, LiveDot } from "@/components/ui/Badge";
@@ -12,9 +12,11 @@ export const metadata: Metadata = {
     "Every live and scheduled FlashX drop. Limited stock, atomic reservations.",
 };
 
-export default function SalesPage() {
-  const live = liveProducts();
-  const upcoming = upcomingProducts();
+export default async function SalesPage() {
+  const catalogue = await listFlashSales();
+
+  const live = catalogue.ok ? liveOnly(catalogue.data) : [];
+  const upcoming = catalogue.ok ? upcomingOnly(catalogue.data) : [];
 
   return (
     <>
@@ -43,7 +45,13 @@ export default function SalesPage() {
           description="Reservations are first come, first served."
         />
 
-        {live.length > 0 ? (
+        {!catalogue.ok ? (
+          <EmptyState
+            icon="🔌"
+            title="Can't reach the catalogue"
+            description={catalogue.message}
+          />
+        ) : live.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {live.map((product) => (
               <FlashSaleCard key={product.sku} product={product} />
@@ -60,7 +68,7 @@ export default function SalesPage() {
 
       {/* Only render the upcoming block when it has something in it — the
           component already no-ops on an empty list. */}
-      {upcoming.length > 0 && <UpcomingDeals />}
+      {upcoming.length > 0 && <UpcomingDeals upcoming={upcoming} />}
     </>
   );
 }

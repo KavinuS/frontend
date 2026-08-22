@@ -29,7 +29,9 @@ export default function CartView() {
 
   // Sold-out lines block checkout: the reservation would fail at the backend
   // anyway, so it is better to say so here than to bounce the user later.
-  const blockedLines = lines.filter((line) => line.soldOut);
+  // Sold out AND closed both block checkout: the reservation script refuses
+  // either, so letting the button through would just produce a failed order.
+  const blockedLines = lines.filter((line) => line.soldOut || line.closed);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -47,7 +49,7 @@ export default function CartView() {
 
         <ul className="space-y-3">
           {lines.map((line) => (
-            <CartRow key={line.sku} line={line} />
+            <CartRow key={line.flashSaleId} line={line} />
           ))}
         </ul>
       </div>
@@ -106,7 +108,9 @@ function CartRow({ line }: { line: CartLine }) {
   return (
     <li
       className={`flex gap-4 rounded-2xl border bg-white p-4 shadow-sm sm:p-5 ${
-        line.soldOut ? "border-red-200 bg-red-50/40" : "border-slate-200"
+        line.soldOut || line.closed
+          ? "border-red-200 bg-red-50/40"
+          : "border-slate-200"
       }`}
     >
       <Link
@@ -128,7 +132,7 @@ function CartRow({ line }: { line: CartLine }) {
 
           <p className="mt-0.5 font-mono text-xs text-slate-400">{line.sku}</p>
 
-          {line.soldOut ? (
+          {line.soldOut || line.closed ? (
             <p className="mt-1.5 text-sm font-semibold text-red-600">
               Sold out — remove to continue
             </p>
@@ -156,8 +160,10 @@ function CartRow({ line }: { line: CartLine }) {
           <div className="flex items-center rounded-xl border border-slate-200">
             <QuantityButton
               label={`Decrease quantity of ${line.name}`}
-              disabled={line.soldOut}
-              onClick={() => setQuantity(line.sku, line.quantity - 1)}
+              disabled={line.soldOut || line.closed}
+              onClick={() =>
+                setQuantity(line.flashSaleId, line.quantity - 1)
+              }
             >
               −
             </QuantityButton>
@@ -170,8 +176,10 @@ function CartRow({ line }: { line: CartLine }) {
                 and the remaining stock, whichever bites first. */}
             <QuantityButton
               label={`Increase quantity of ${line.name}`}
-              disabled={line.soldOut || line.atMax}
-              onClick={() => setQuantity(line.sku, line.quantity + 1)}
+              disabled={line.soldOut || line.closed || line.atMax}
+              onClick={() =>
+                setQuantity(line.flashSaleId, line.quantity + 1)
+              }
             >
               +
             </QuantityButton>
@@ -183,7 +191,7 @@ function CartRow({ line }: { line: CartLine }) {
 
           <button
             type="button"
-            onClick={() => removeItem(line.sku)}
+            onClick={() => removeItem(line.flashSaleId)}
             aria-label={`Remove ${line.name} from cart`}
             className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
           >

@@ -1,21 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
+import { placeOrder } from "@/app/actions/checkout";
 import { useCart } from "@/app/lib/cart-context";
 import { formatPrice } from "@/app/lib/format";
-import { useOrders } from "@/app/lib/orders-store";
 import OrderSummary from "@/components/cart/OrderSummary";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/Section";
 
 export default function CheckoutView() {
   const router = useRouter();
-  const { lines, hydrated, subtotal, savings, itemCount, clear } = useCart();
-  const { placeOrder } = useOrders();
+  const { lines, hydrated, subtotal, savings, itemCount, clear, removeItem } =
+    useCart();
 
-  const [placing, setPlacing] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [rejected, setRejected] = useState<
+    { flashSaleId: number; name: string; message: string }[]
+  >([]);
 
   if (!hydrated) {
     return (
@@ -35,32 +38,46 @@ export default function CheckoutView() {
     );
   }
 
-  const blocked = lines.some((line) => line.soldOut);
+  // A closed sale is as unbuyable as a sold-out one; reserve_stock.lua refuses
+  // both, so the button must not offer to try.
+  const blocked = lines.some((line) => line.soldOut || line.closed);
 
   const handlePlaceOrder = () => {
-    if (blocked) return;
-    setPlacing(true);
+    if (blocked || pending) return;
+    setRejected([]);
 
-    /*
-     * Stands in for `POST /api/v1/flash-sale/checkout`.
-     *
-     * The real call returns 202 Accepted with a correlation ID after the Redis
-     * DECR succeeds and the job is queued. Here the order is created locally
-     * in PENDING_PERSISTENCE and the confirmation page drives it to CONFIRMED.
-     * Swapping in the real endpoint means replacing this one function.
-     */
-    const order = placeOrder(
-      lines.map((line) => ({
-        sku: line.sku,
-        name: line.name,
-        emoji: line.emoji,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-      })),
-    );
+    startTransition(async () => {
+      /*
+       * `POST /api/v1/flash-sale/checkout`, once per cart line — the endpoint
+       * reserves one sale at a time. See app/actions/checkout.ts for why that
+       * is a sequential loop and not a transaction.
+       */
+      const outcome = await placeOrder(
+        lines.map((line) => ({
+          flashSaleId: line.flashSaleId,
+          quantity: line.quantity,
+          name: line.name,
+        })),
+      );
 
-    clear();
-    router.push(`/orders/${order.id}?placed=1`);
+      if ("error" in outcome) {
+        setRejected([{ flashSaleId: 0, name: "", message: outcome.error }]);
+        return;
+      }
+
+      // Drop only what was actually reserved. A partial failure — two lines
+      // through, one sold out — must leave the failed line in the cart, or the
+      // customer loses the thing they came for with no explanation.
+      for (const line of outcome.placed) removeItem(line.flashSaleId);
+
+      if (outcome.rejected.length > 0) {
+        setRejected(outcome.rejected);
+        return;
+      }
+
+      clear();
+      router.push(`/orders/${outcome.placed[0].orderId}?placed=1`);
+    });
   };
 
   return (
@@ -75,7 +92,10 @@ export default function CheckoutView() {
 
           <ul className="mt-5 divide-y divide-slate-100">
             {lines.map((line) => (
-              <li key={line.sku} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+              <li
+                key={line.flashSaleId}
+                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+              >
                 <span
                   aria-hidden="true"
                   className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-slate-100 to-slate-200 text-2xl"
@@ -90,9 +110,11 @@ export default function CheckoutView() {
                   <p className="mt-0.5 text-sm text-slate-500">
                     Qty {line.quantity} × {formatPrice(line.unitPrice)}
                   </p>
-                  {line.soldOut && (
+                  {(line.soldOut || line.closed) && (
                     <p className="mt-1 text-sm font-semibold text-red-600">
-                      Sold out since you added it
+                      {line.soldOut
+                        ? "Sold out since you added it"
+                        : "This sale has closed"}
                     </p>
                   )}
                 </div>
@@ -141,16 +163,42 @@ export default function CheckoutView() {
                 variant="flash"
                 size="lg"
                 fullWidth
-                disabled={blocked || placing}
+                // Disabled while in flight. The idempotency key is minted per
+                // attempt on the server, so two clicks would be two distinct
+                // reservations rather than one deduped by the UNIQUE index.
+                disabled={blocked || pending}
                 onClick={handlePlaceOrder}
               >
-                {placing ? "Reserving stock…" : "Place order"}
+                {pending ? "Reserving stock…" : "Place order"}
               </Button>
+
+              {rejected.length > 0 && (
+                <div
+                  role="alert"
+                  className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-left"
+                >
+                  <p className="text-sm font-semibold text-red-900">
+                    {rejected.length === 1 && !rejected[0].name
+                      ? "Checkout failed"
+                      : "Some items could not be reserved"}
+                  </p>
+                  <ul className="mt-1.5 space-y-1 text-sm text-red-800">
+                    {rejected.map((line, index) => (
+                      <li key={line.flashSaleId || index}>
+                        {line.name && (
+                          <span className="font-medium">{line.name}: </span>
+                        )}
+                        {line.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {blocked && (
                 <p className="mt-3 text-center text-sm text-red-600">
-                  A sold-out item is still in your cart. Remove it in the cart
-                  to continue.
+                  An item in your cart can no longer be reserved. Remove it in
+                  the cart to continue.
                 </p>
               )}
 

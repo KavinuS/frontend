@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import { useCart } from "@/app/lib/cart-context";
-import { limitFor } from "@/app/lib/cart-store";
 import AddToCartButton from "@/components/cart/AddToCartButton";
 
 /**
@@ -15,17 +14,19 @@ import AddToCartButton from "@/components/cart/AddToCartButton";
  * remaining stock if that is lower.
  */
 export default function AddToCartPanel({
-  sku,
+  flashSaleId,
   soldOut,
 }: {
-  sku: string;
+  flashSaleId: number;
   soldOut: boolean;
 }) {
-  const { lines, hydrated } = useCart();
+  // limitFor comes from the context now: the ceiling depends on live stock,
+  // which arrives with the catalogue rather than from a module import.
+  const { hydrated, limitFor, quantityOf } = useCart();
   const [quantity, setQuantity] = useState(1);
 
-  const inCart = lines.find((line) => line.sku === sku)?.quantity ?? 0;
-  const limit = limitFor(sku);
+  const inCart = quantityOf(flashSaleId);
+  const limit = limitFor(flashSaleId);
   const allowance = Math.max(0, limit - inCart);
   const maxedOut = hydrated && !soldOut && allowance === 0;
 
@@ -39,7 +40,7 @@ export default function AddToCartPanel({
   if (soldOut) {
     return (
       <AddToCartButton
-        sku={sku}
+        flashSaleId={flashSaleId}
         disabled
         label="Sold out"
         variant="flash"
@@ -78,7 +79,7 @@ export default function AddToCartPanel({
       </div>
 
       <AddToCartButton
-        sku={sku}
+        flashSaleId={flashSaleId}
         quantity={effective}
         disabled={maxedOut}
         label={maxedOut ? "Maximum in cart" : `Add ${effective} to cart`}

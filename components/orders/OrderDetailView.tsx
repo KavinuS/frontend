@@ -1,68 +1,94 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { formatDateTime, formatPrice, shortId } from "@/app/lib/format";
-import { useOrders } from "@/app/lib/orders-store";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/Section";
-import type { OrderStatus } from "@/types/order";
+import type { Order, OrderStatus } from "@/types/order";
 
-/** How long the fake persistence worker "takes". See the note below. */
-const SIMULATED_PERSISTENCE_MS = 2600;
+/** How often to ask the backend whether the queue worker has committed yet. */
+const POLL_INTERVAL_MS = 1500;
+
+/** Stop after this long so a stuck order does not poll a tab forever. */
+const POLL_TIMEOUT_MS = 60_000;
 
 export default function OrderDetailView({
-  orderId,
+  order,
   justPlaced,
 }: {
-  orderId: string;
+  /** Null while the row does not exist yet, or when it is not ours. */
+  order: Order | null;
   justPlaced: boolean;
 }) {
-  const { getOrder, confirmOrder, hydrated } = useOrders();
-  const order = getOrder(orderId);
-
-  const isPending = order?.status === "PENDING_PERSISTENCE";
+  const router = useRouter();
 
   /*
-   * ⚠️ PROTOTYPE ONLY — replace in Phase 3. ⚠️
+   * Polling, until SSE exists.
    *
-   * Stands in for the SSE / WebSocket push that tells the client the queue
-   * worker has committed the order to Postgres. The timer exists purely so the
-   * PENDING_PERSISTENCE → CONFIRMED transition is visible and testable without
-   * a backend. Phase 3 replaces this effect with an EventSource subscription;
-   * every component below it stays exactly as it is.
+   * The old version of this component ran a timer that FAKED the transition to
+   * CONFIRMED. This one asks the backend and reports what it actually says —
+   * which means an order that never commits now stays visibly pending instead
+   * of pretending to succeed.
+   *
+   * Two states are worth polling. `order === null` covers the window right
+   * after checkout where the 202 has returned but the queue worker has not
+   * written the row, so `GET /orders/{id}` is still a 404. PENDING_PERSISTENCE
+   * covers the row existing but not yet confirmed.
+   *
+   * Phase 3 replaces this whole effect with an EventSource subscription;
+   * everything below it stays exactly as it is.
    */
+  const awaitingWorker = order === null || order.status === "PENDING_PERSISTENCE";
+
   useEffect(() => {
-    if (!isPending) return;
+    if (!awaitingWorker) return;
 
-    const timer = setTimeout(
-      () => confirmOrder(orderId),
-      SIMULATED_PERSISTENCE_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [isPending, orderId, confirmOrder]);
+    const poll = setInterval(() => router.refresh(), POLL_INTERVAL_MS);
+    const giveUp = setTimeout(() => clearInterval(poll), POLL_TIMEOUT_MS);
 
-  if (!hydrated) {
-    return (
-      <div className="h-96 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-    );
-  }
+    return () => {
+      clearInterval(poll);
+      clearTimeout(giveUp);
+    };
+  }, [awaitingWorker, router]);
 
+  // No row yet. Right after a checkout this is expected and temporary; arriving
+  // cold on an unknown id it is a genuine miss. The copy has to cover both
+  // without claiming the order is lost.
   if (!order) {
-    return (
+    return justPlaced ? (
+      <EmptyState
+        icon="⏳"
+        title="Reservation accepted — writing it down"
+        description={
+          "Your stock is reserved in Redis and the order is queued. The row appears " +
+          "here as soon as the worker commits it, usually within a second or two."
+        }
+        actionLabel="Back to orders"
+        actionHref="/orders"
+      />
+    ) : (
       <EmptyState
         icon="🔍"
         title="Order not found"
-        description="We couldn't find an order with that ID. It may have been placed in a different browser — order history is stored locally until the backend lands."
+        description={
+          "No order with that ID belongs to your account. If you just placed it, " +
+          "give the queue a moment and refresh."
+        }
         actionLabel="Back to orders"
         actionHref="/orders"
       />
     );
   }
 
-  const itemCount = order.lines.reduce((total, line) => total + line.quantity, 0);
+  const itemCount = order.lines.reduce(
+    (total, line) => total + line.quantity,
+    0,
+  );
 
   return (
     <div className="mx-auto max-w-3xl">

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { formatDateTime, formatPrice, shortId } from "@/app/lib/format";
-import { useOrders } from "@/app/lib/orders-store";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/Section";
 import type { Order, OrderStatus } from "@/types/order";
@@ -16,22 +15,17 @@ const filters: { value: OrderStatus | "ALL"; label: string }[] = [
   { value: "FAILED", label: "Failed" },
 ];
 
-export default function OrdersView() {
-  const { orders, hydrated } = useOrders();
+/**
+ * Presentational. The orders arrive from the server, already scoped to the
+ * signed-in user by the JWT subject — there is no client-side history any more,
+ * so no hydration gap and no skeleton.
+ *
+ * Still a Client Component: the status filter below is local state, and pushing
+ * it into the URL would make every filter click a server round trip for a list
+ * that is already in memory.
+ */
+export default function OrdersView({ orders }: { orders: Order[] }) {
   const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
-
-  if (!hydrated) {
-    return (
-      <div className="space-y-3">
-        {[0, 1, 2].map((index) => (
-          <div
-            key={index}
-            className="h-32 animate-pulse rounded-2xl border border-slate-200 bg-white"
-          />
-        ))}
-      </div>
-    );
-  }
 
   if (orders.length === 0) {
     return (
