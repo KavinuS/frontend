@@ -10,7 +10,7 @@ import {
   type AuthFormState,
 } from "@/app/lib/definitions";
 import { safeRedirectPath } from "@/app/lib/redirects";
-import { createSession, deleteSession } from "@/app/lib/session";
+import { createSession, deleteSession, readClaims } from "@/app/lib/session";
 
 /**
  * Auth Server Actions.
@@ -19,6 +19,20 @@ import { createSession, deleteSession } from "@/app/lib/session";
  * password is out of the client bundle and out of the URL. Each action returns
  * an `AuthFormState` that `useActionState` renders as inline field errors.
  */
+
+/**
+ * Where a freshly signed-in account belongs.
+ *
+ * An admin has no use for the customer dashboard — the console is the reason
+ * they signed in — so the landing page follows the role rather than being the
+ * same for everyone. This is a convenience, not a control: `/admin` is still
+ * gated by `requireAdmin()`, and every `/api/v1/admin/**` endpoint re-checks the
+ * role against the token signature. A forged `role: "ADMIN"` claim buys a
+ * redirect to a page that immediately bounces it.
+ */
+function landingFor(token: string) {
+  return readClaims(token)?.role === "ADMIN" ? "/admin" : "/dashboard";
+}
 
 export async function register(
   _prevState: AuthFormState,
@@ -66,7 +80,11 @@ export async function register(
   if (sessionError) return { message: sessionError, values };
 
   // Outside try/catch on purpose — redirect() signals by throwing.
-  redirect("/dashboard");
+  //
+  // Registration always mints a CUSTOMER, so this is `/dashboard` in practice.
+  // It goes through the same helper anyway so there is one rule about where a
+  // new session lands, rather than two that can drift.
+  redirect(landingFor(result.data.token));
 }
 
 export async function login(
@@ -109,7 +127,11 @@ export async function login(
   // Where the user was heading before being asked to sign in. Validated, never
   // used raw - see safeRedirectPath for why this is the one redirect on the
   // site worth guarding.
-  redirect(safeRedirectPath(formData.get("next")));
+  //
+  // An explicit `next` still wins: someone who hit /admin cold was bounced here
+  // with `?next=/admin` and expects to land back there. The role only decides
+  // the fallback, for the ordinary case of signing in from the navbar.
+  redirect(safeRedirectPath(formData.get("next"), landingFor(result.data.token)));
 }
 
 /**

@@ -32,7 +32,7 @@ export default function UpcomingDeals({ upcoming }: { upcoming: Product[] }) {
       <div className="grid gap-6 md:grid-cols-3">
         {upcoming.map((product) => (
           <Link
-            key={product.sku}
+            key={product.id}
             href={`/sales/${product.sku}`}
             className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-900/5"
           >

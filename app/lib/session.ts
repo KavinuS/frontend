@@ -53,7 +53,19 @@ export type SessionClaims = {
  * which is a real downgrade in exchange for no extra safety.
  */
 export async function getSessionClaims(): Promise<SessionClaims | null> {
-  const token = await getSessionToken();
+  return readClaims(await getSessionToken());
+}
+
+/**
+ * The same decode, against a token held in hand rather than read from the
+ * cookie.
+ *
+ * Sign-in needs the role to decide where to send the user, and at that moment
+ * the cookie has only just been written. Going back through `cookies()` to read
+ * what we are already holding is a round trip for no gain, so the decode is
+ * split out and both callers share it.
+ */
+export function readClaims(token: string | undefined): SessionClaims | null {
   if (!token) return null;
 
   const payload = token.split(".")[1];

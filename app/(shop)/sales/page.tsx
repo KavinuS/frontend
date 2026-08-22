@@ -54,7 +54,7 @@ export default async function SalesPage() {
         ) : live.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {live.map((product) => (
-              <FlashSaleCard key={product.sku} product={product} />
+              <FlashSaleCard key={product.id} product={product} />
             ))}
           </div>
         ) : (

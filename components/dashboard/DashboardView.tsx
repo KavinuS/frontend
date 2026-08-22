@@ -63,15 +63,7 @@ export default function DashboardView({ orders }: { orders: Order[] }) {
         </ButtonLink>
       </div>
 
-      {/* Account identity is a placeholder: the session cookie holds an opaque
-          backend token, so there is no user profile to read until Phase 1. */}
-      <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/70 px-5 py-4 text-sm text-amber-900">
-        Signed-in account details aren&apos;t wired up yet — this page reads
-        locally stored orders. It switches to <code className="font-mono">GET /api/v1/orders</code>{" "}
-        once the backend lands.
-      </div>
-
-      <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <div
             key={stat.label}

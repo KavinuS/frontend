@@ -32,6 +32,20 @@ export function createLocalStore<T>({
   let cachedRaw: string | null | undefined;
   let cached: T = serverValue;
 
+  /*
+   * Set once a write has failed — blocked site data, private mode, a quota
+   * ceiling, an extension that stubs out setItem.
+   *
+   * From then on `getSnapshot` stops consulting storage and serves the
+   * in-memory value instead. Without this the store contradicts itself: `set`
+   * caches optimistically, the next snapshot reads back the *absent* key, sees
+   * it differs from the cache, and resets to empty — so an add appears to work
+   * for one frame and then vanishes, with nothing logged. Degrading to a
+   * session-only store keeps the page usable; the cart simply does not survive
+   * a reload, which is the documented intent.
+   */
+  let memoryOnly = false;
+
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((listener) => listener());
 
@@ -45,6 +59,9 @@ export function createLocalStore<T>({
   };
 
   const handleStorage = (event: StorageEvent) => {
+    // Nothing to sync to once this tab has stopped trusting storage, and
+    // re-parsing would clobber the in-memory value with a stale read.
+    if (memoryOnly) return;
     // event.key is null when the whole store is cleared.
     if (event.key !== null && event.key !== key) return;
     cachedRaw = undefined; // Force a re-parse on the next snapshot.
@@ -69,6 +86,8 @@ export function createLocalStore<T>({
     },
 
     getSnapshot(): T {
+      if (memoryOnly) return cached;
+
       const raw = readRaw();
       if (raw !== cachedRaw) {
         cachedRaw = raw;
@@ -84,13 +103,19 @@ export function createLocalStore<T>({
       try {
         window.localStorage.setItem(key, raw);
       } catch {
-        // Quota exceeded or storage blocked. Still update in memory so the
-        // current session behaves, it just won't survive a reload.
+        // Quota exceeded or storage blocked. Serve from memory for the rest of
+        // the session so the current visit behaves; it just won't survive a
+        // reload. See `memoryOnly` above for why the flag is required rather
+        // than merely nice — without it this catch loses the write entirely.
+        memoryOnly = true;
       }
       cachedRaw = raw;
       cached = next;
       emit();
     },
+
+    /** True when a write has failed and the cart is session-only. */
+    isMemoryOnly: () => memoryOnly,
   };
 }
 
