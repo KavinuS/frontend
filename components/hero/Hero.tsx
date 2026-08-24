@@ -1,4 +1,4 @@
-import { Badge, LiveDot } from "@/components/ui/Badge";
+import { LiveDot } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
 
@@ -10,52 +10,38 @@ const stats = [
   { value: "0", label: "Oversells" },
 ];
 
+/**
+ * The landing hero.
+ *
+ * Left-aligned and unornamented: the colour blooms, blur gradients and faint
+ * grid that used to sit behind this are gone, along with the gradient-clipped
+ * text. The design system's whole argument is that a 72px headline on an
+ * off-white ground with one red mark next to it is louder than any of that, and
+ * a hero that competes with the flash-sale table two screens down is the wrong
+ * hero for this site.
+ */
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-slate-200 bg-white">
+    <section className="border-b-2 border-fx-divider">
+      <Container className="pb-20 pt-24">
+        <p className="fx-eyebrow flex items-center gap-2.5 tracking-[0.16em] text-fx-accent">
+          <LiveDot size={9} />
+          Flash sale is live
+        </p>
 
-      {/*
-        Decorative background: two soft colour blooms plus a faint grid.
-        Pointer-events-none and aria-hidden so none of it intercepts clicks or
-        reaches the accessibility tree.
-      */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-orange-200/40 blur-3xl" />
-        <div className="absolute -right-32 top-16 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
-        <div
-          className="absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #0f172a 1px, transparent 1px), linear-gradient(to bottom, #0f172a 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-          }}
-        />
-      </div>
-
-      <Container className="relative py-24 text-center lg:py-32">
-
-        <div className="mb-6 flex justify-center">
-          <Badge tone="flash" className="px-4 py-1.5 text-sm">
-            <LiveDot />
-            Flash sale is live
-          </Badge>
-        </div>
-
-        <h1 className="mx-auto max-w-3xl text-5xl font-bold leading-[1.1] tracking-tight text-slate-900 lg:text-6xl">
+        <h1 className="mt-5 max-w-[16ch] animate-fx-lift text-[clamp(44px,7vw,84px)] leading-[0.96] tracking-[-0.03em]">
           Limited stock.
           <br />
-          <span className="bg-linear-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-            Thousands of buyers.
-          </span>
+          Thousands of buyers.
         </h1>
 
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
+        <p className="fx-muted mt-6 max-w-[52ch] text-lg">
           Grab the deal before the inventory disappears. Every reservation is
           atomic, so the counter you see is the counter that counts.
         </p>
 
-        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <ButtonLink href="/sales" variant="flash" size="lg">
+        <div className="mt-8 flex flex-wrap gap-3">
+          <ButtonLink href="/sales" size="lg">
             Shop flash sales
           </ButtonLink>
           <ButtonLink href="#live-deals" variant="secondary" size="lg">
@@ -63,22 +49,28 @@ export default function Hero() {
           </ButtonLink>
         </div>
 
-        <dl className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-4 md:grid-cols-4">
-          {stats.map((stat) => (
+        {/* The same ruled band the dashboard uses for its counters, so the
+            marketing claims and the account's real figures are drawn with one
+            device rather than two. */}
+        <dl className="mt-20 grid grid-cols-2 border-y-2 border-fx-divider md:grid-cols-4">
+          {stats.map((stat, index) => (
             <div
               key={stat.label}
-              className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-6 backdrop-blur-sm transition-colors hover:border-slate-300"
+              className={[
+                "border-fx-divider px-6 py-6 first:pl-0 last:pr-0",
+                index % 2 === 1 ? "border-l" : index > 0 ? "md:border-l" : "",
+                index < 2 ? "border-b md:border-b-0" : "",
+              ].join(" ")}
             >
-              <dt className="text-2xl font-bold text-blue-600 lg:text-3xl">
+              <dt className="font-heading text-[32px] font-extrabold tracking-[-0.02em]">
                 {stat.value}
               </dt>
-              <dd className="mt-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">
+              <dd className="fx-muted fx-eyebrow mt-1 tracking-[0.12em]">
                 {stat.label}
               </dd>
             </div>
           ))}
         </dl>
-
       </Container>
     </section>
   );

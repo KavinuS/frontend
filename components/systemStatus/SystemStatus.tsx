@@ -31,34 +31,33 @@ export default function SystemStatus() {
     <Container className="pb-24">
       <SectionHeading
         eyebrow="Live system"
-        tone="brand"
         title="System status"
         description="The pieces that keep a sale honest under load."
       />
 
-      <div className="grid gap-5 md:grid-cols-3">
-        {services.map((service) => (
+      <div className="grid border-t-2 border-fx-divider md:grid-cols-3">
+        {services.map((service, index) => (
           <div
             key={service.name}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+            className={[
+              "border-fx-divider py-6",
+              index > 0 ? "border-t md:border-l md:border-t-0 md:pl-6" : "",
+              index < services.length - 1 ? "md:pr-6" : "",
+            ].join(" ")}
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <span className="text-green-500">
-                  <LiveDot />
-                </span>
-                <h3 className="font-bold text-slate-900">{service.name}</h3>
-              </div>
+              <h3 className="flex items-center gap-2.5 text-base">
+                <LiveDot />
+                {service.name}
+              </h3>
 
-              <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600">
-                {service.metric}
-              </span>
+              <span className="fx-mono fx-muted text-xs">{service.metric}</span>
             </div>
 
-            <p className="mt-4 font-semibold text-green-600">{service.state}</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
-              {service.detail}
+            <p className="mt-3.5 font-heading text-sm font-extrabold text-fx-accent">
+              {service.state}
             </p>
+            <p className="fx-muted mt-1.5 text-sm">{service.detail}</p>
           </div>
         ))}
       </div>

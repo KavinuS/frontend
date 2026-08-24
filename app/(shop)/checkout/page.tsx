@@ -10,16 +10,15 @@ export const metadata: Metadata = {
 
 export default function CheckoutPage() {
   return (
-    <Container className="py-12 lg:py-16">
-      <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+    <Container className="pb-22 pt-14">
+      <h1 className="animate-fx-lift text-[clamp(40px,5vw,60px)] tracking-[-0.03em]">
         Checkout
       </h1>
-      <p className="mt-2 max-w-2xl text-slate-600">
-        Placing the order runs an atomic decrement in Redis and queues the write
-        to Postgres. You&apos;ll get a correlation ID immediately.
+      <p className="fx-muted mt-2">
+        No payment is taken — this is a concurrency demo, not a store.
       </p>
 
-      <div className="mt-10">
+      <div className="mt-8">
         <CheckoutView />
       </div>
     </Container>

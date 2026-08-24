@@ -3,6 +3,10 @@
 /**
  * Form-level failure (bad credentials, backend down). `role="alert"` so it is
  * announced when it appears after a submit.
+ *
+ * A flat accent wash, no icon and no border: it is the same block the checkout
+ * and order pages use to report a rejection, so a customer meets one error
+ * shape across the whole storefront.
  */
 export function FormBanner({ message }: { message?: string }) {
   if (!message) return null;
@@ -10,7 +14,7 @@ export function FormBanner({ message }: { message?: string }) {
   return (
     <div
       role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      className="bg-fx-accent-100 px-4 py-3 text-[13px] text-fx-accent-800"
     >
       {message}
     </div>
@@ -19,12 +23,10 @@ export function FormBanner({ message }: { message?: string }) {
 
 export function Divider({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-4">
-      <span className="h-px flex-1 bg-slate-200" />
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        {label}
-      </span>
-      <span className="h-px flex-1 bg-slate-200" />
+    <div className="flex items-center gap-3.5">
+      <span aria-hidden="true" className="h-px flex-1 bg-fx-divider" />
+      <span className="fx-muted fx-eyebrow tracking-[0.12em]">{label}</span>
+      <span aria-hidden="true" className="h-px flex-1 bg-fx-divider" />
     </div>
   );
 }
@@ -44,7 +46,7 @@ export function SubmitButton({
       disabled={pending}
       // aria-busy tells assistive tech the control is working rather than broken.
       aria-busy={pending}
-      className="w-full rounded-xl bg-blue-600 py-3.5 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+      className="fx-btn fx-btn-primary fx-btn-block px-4.5 py-3.5"
     >
       {pending ? pendingLabel : idleLabel}
     </button>

@@ -1,3 +1,5 @@
+import { readClaims } from "@/app/lib/session";
+
 /**
  * Validates a post-sign-in redirect target.
  *
@@ -33,4 +35,22 @@ export function safeRedirectPath(
   if (/[\x00-\x1f\x7f]/.test(value)) return fallback;
 
   return value;
+}
+
+/**
+ * Where a freshly signed-in account belongs.
+ *
+ * An admin has no use for the customer dashboard — the console is the reason
+ * they signed in — so the landing page follows the role rather than being the
+ * same for everyone. This is a convenience, not a control: `/admin` is still
+ * gated by `requireAdmin()`, and every `/api/v1/admin/**` endpoint re-checks
+ * the role against the token signature. A forged `role: "ADMIN"` claim buys a
+ * redirect to a page that immediately bounces it.
+ *
+ * Lives here rather than beside the password actions because the Google
+ * callback lands a session too, and both routes have to agree on where a new
+ * session goes.
+ */
+export function landingFor(token: string) {
+  return readClaims(token)?.role === "ADMIN" ? "/admin" : "/dashboard";
 }

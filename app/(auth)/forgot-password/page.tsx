@@ -23,16 +23,16 @@ export default function ForgotPasswordPage() {
           Remembered it?{" "}
           <Link
             href="/login"
-            className="font-semibold text-blue-600 hover:text-blue-700"
+            className="text-fx-accent hover:text-fx-accent-700"
           >
             Back to sign in
           </Link>
         </>
       }
     >
-      <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-6">
-        <p className="font-semibold text-amber-900">Not implemented yet</p>
-        <p className="mt-2 text-sm leading-relaxed text-amber-900/80">
+      <div className="border-y-2 border-fx-divider py-6">
+        <p className="fx-eyebrow text-fx-accent">Not implemented yet</p>
+        <p className="fx-muted mt-3 text-sm">
           Resetting a password requires the backend to issue a signed, expiring
           token and send it by email. That lands with the auth service in
           Phase 1. Until then, register a new account if you need one.

@@ -24,7 +24,7 @@ export default async function OrderDetailPage(
 
   if (!result.ok && result.status === 401) {
     return (
-      <Container className="py-12 lg:py-16">
+      <Container className="pb-22 pt-14">
         <EmptyState
           icon="🔐"
           title="Sign in to view this order"
@@ -37,7 +37,7 @@ export default async function OrderDetailPage(
   }
 
   return (
-    <Container className="py-12 lg:py-16">
+    <Container className="pb-22 pt-14">
       <OrderDetailView order={order} justPlaced={placed === "1"} />
     </Container>
   );

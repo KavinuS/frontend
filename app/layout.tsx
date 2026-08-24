@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,6 +12,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/*
+ * The storefront's typeface, and the only one the Modernist design system uses:
+ * 400 for body copy, 800 for every heading and control label. Loaded here
+ * rather than in the shop layout so the weights are in the critical CSS on a
+ * cold entry to any route, and so the admin console — which stays on Geist —
+ * still resolves the variable if it ever wants it.
+ */
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  weight: ["400", "600", "800"],
+});
+
 export const metadata: Metadata = {
   title: "FlashX — High-Concurrency Flash Sale Engine",
   description:
@@ -22,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -5,6 +5,29 @@ export const SESSION_COOKIE = "flashx_session";
 const DEFAULT_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 /**
+ * The flags the session cookie is written with.
+ *
+ * Shared rather than inlined because the cookie is now set from two places: the
+ * password Server Actions, which go through `createSession`, and the Google
+ * callback Route Handler, which sets it on a `NextResponse` it returns. Two
+ * copies of these flags would drift, and the one that drifts is the one that
+ * silently loses `httpOnly`.
+ *
+ * `sameSite: "lax"` is what makes the OAuth return leg work at all: the browser
+ * arrives at /auth/callback as a top-level redirect from the backend, and a
+ * `strict` cookie would not be sent on the navigation that follows.
+ */
+export function sessionCookieOptions(expiresInSeconds?: number) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: expiresInSeconds ?? DEFAULT_MAX_AGE_SECONDS,
+  };
+}
+
+/**
  * Stores the backend-issued token in an httpOnly cookie.
  *
  * httpOnly keeps the token out of `document.cookie`, so an XSS bug on the
@@ -14,12 +37,42 @@ const DEFAULT_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
 export async function createSession(token: string, expiresInSeconds?: number) {
   const cookieStore = await cookies();
 
-  cookieStore.set(SESSION_COOKIE, token, {
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(expiresInSeconds));
+}
+
+/**
+ * Where the user was heading when they clicked "Continue with Google".
+ *
+ * The OAuth round trip goes through Google and comes back to a fixed callback
+ * URL, so there is nowhere to thread a `?next=` through: the backend's redirect
+ * target is a single configured value, and OAuth `state` is owned by Spring
+ * Security. Parking the destination in a short-lived cookie is the one channel
+ * that survives the trip.
+ *
+ * Deliberately NOT httpOnly-sensitive data — it is a path, already validated by
+ * `safeRedirectPath` on the way back in.
+ */
+export const OAUTH_NEXT_COOKIE = "flashx_oauth_next";
+
+/** Ten minutes: long enough to finish a Google login, short enough to be stale-proof. */
+const OAUTH_NEXT_MAX_AGE_SECONDS = 600;
+
+export async function stashOAuthNext(next: string | undefined) {
+  const cookieStore = await cookies();
+
+  if (!next) {
+    // Clear a leftover from an abandoned attempt, so an old `next` cannot
+    // hijack a later sign-in that asked for no particular destination.
+    cookieStore.delete(OAUTH_NEXT_COOKIE);
+    return;
+  }
+
+  cookieStore.set(OAUTH_NEXT_COOKIE, next, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: expiresInSeconds ?? DEFAULT_MAX_AGE_SECONDS,
+    maxAge: OAUTH_NEXT_MAX_AGE_SECONDS,
   });
 }
 

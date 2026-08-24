@@ -79,44 +79,90 @@ types/order.tsx             # Order, OrderLine, OrderStatus
 
 ## Theming
 
-FlashX uses a **fixed light theme**. `globals.css` defines `--background` (`#f8fafc`) and
-`--foreground` (`#0f172a`) on `:root`.
+The storefront runs on **Modernist**, the design system the Claude Design project
+`FlashX Storefront.dc.html` is drawn against. It is ported into `app/globals.css` under an
+`fx-` namespace, so it can sit beside the admin console's Tailwind/slate palette without
+either reaching into the other.
 
-The `create-next-app` `prefers-color-scheme: dark` override was **deliberately removed** —
-without that, the body would flip to near-black on machines set to dark mode while the
-component palette stayed light, producing white cards on a black page. If you want real
-dark mode later, add it as a full palette swap rather than restoring that block.
+The look in one line: off-white ground, near-black ink, a single hot red accent, Archivo at
+weight 800 for every heading and control label, **zero corner radius**, and hairline rules
+instead of cards and shadows.
 
-Palette conventions used throughout:
+FlashX is a **fixed light theme**. The `create-next-app` `prefers-color-scheme: dark`
+override was **deliberately removed** — without that, the body would flip to near-black on
+machines set to dark mode while the component palette stayed light, producing white cards
+on a black page. If you want real dark mode later, add it as a full palette swap rather
+than restoring that block.
 
-| Role | Class |
-|---|---|
-| Page background | `bg-slate-50` |
-| Card surface | `bg-white` + `border-slate-200` + `shadow-sm` |
-| Body text | `text-slate-900` |
-| Muted text | `text-slate-600` / `text-slate-500` |
-| Primary action | `bg-blue-600` |
-| Flash sale accent | `text-orange-600` / `bg-orange-500` |
-| Price / success | `text-green-600` |
+### Where the tokens live
 
-### Design system
+`@theme` in `globals.css` is the single source of truth. Retune there and both the Tailwind
+utilities and the ported component classes follow.
+
+| Role | Token | Utility |
+|---|---|---|
+| Page ground | `--color-fx-bg` `#f3f2f2` | `bg-fx-bg` |
+| Inset surface | `--color-fx-surface` `#eae9e9` | `bg-fx-surface` |
+| Ink | `--color-fx-ink` `#201e1d` | `text-fx-ink` |
+| Accent | `--color-fx-accent` `#ec3013` | `bg-fx-accent` / `text-fx-accent` |
+| Accent wash / deep | `--color-fx-accent-100` … `-800` | `bg-fx-accent-100`, `text-fx-accent-800` |
+| Hairline | `--color-fx-divider` | `border-fx-divider` |
+| Muted text | `--color-fx-muted` | `.fx-muted` |
+| Heading face | `--font-heading` (Archivo 800) | `font-heading` |
+
+**Red is rationed.** It marks the current nav item, the live square, scarce stock, an
+in-flight order, and the primary action — nothing else. The one exception is the auth
+screen's left panel, which fills a whole surface with it because there is nothing on that
+screen to compete with.
+
+### Opting in: `.fx-scope`
+
+The element-level rules (type scale, focus ring, selection colour) are scoped to
+`.fx-scope`, not stated on `body`. Anything outside the shop layout that needs the system
+has to add the class itself — `app/(shop)/layout.tsx`, `components/auth/AuthShell.tsx` and
+`app/not-found.tsx` all do. The admin console deliberately does not.
+
+### Component classes
+
+Ported from the design system's own stylesheet, in Tailwind's `components` layer so plain
+utilities still override them without `!important`:
+
+`.fx-btn` (+ `-primary` / `-secondary` / `-ghost` / `-block`), `.fx-input`, `.fx-field`,
+`.fx-seg` + `.fx-seg-opt`, `.fx-tag` (+ `-accent` / `-neutral` / `-outline`), `.fx-nav`,
+`.fx-table`, `.fx-eyebrow`, `.fx-muted`, `.fx-mono`.
+
+`.fx-table` is prefixed rather than the source's `.table`, which would collide with
+Tailwind's `display: table` utility of the same name.
+
+### React primitives
 
 Don't hand-roll buttons, badges, or section headers — `components/ui/` owns them, so a
 `<button>` and a `<Link>` that look alike can't drift apart:
 
 - **`Button` / `ButtonLink`** — variants `primary`, `flash`, `secondary`, `ghost`,
-  `danger`. Pick the element by meaning: `Button` acts, `ButtonLink` navigates.
-- **`Badge`, `SaleStatusBadge`, `OrderStatusBadge`, `LiveDot`** — status colour is
-  decided in one table per domain, not per call site.
-- **`StockBar`** — colour tracks scarcity (green → amber under 25% → red under 10%),
-  so urgency is carried by the bar and not only the number beside it.
-- **`Container`, `SectionHeading`, `EmptyState`** — one max-width and gutter everywhere.
+  `danger`. `primary` and `flash` are the same button and `danger` is ghost-accent: the
+  system has one accent, so there is no second colour to promote or warn with. Pick the
+  element by meaning: `Button` acts, `ButtonLink` navigates.
+- **`Badge`, `SaleStatusBadge`, `OrderStatusBadge`, `LiveDot`** — three tones only
+  (`accent`, `neutral`, `outline`), mapped per domain in one table rather than per call
+  site. Note the inversion: *Processing* is accent and *Confirmed* is neutral, because the
+  row worth a second look is the one still in flight.
+- **`StockBar`** — binary, not a traffic light: ink while there is room, accent under 15%,
+  and the label swaps from `128 / 500` to `Only 3 left` at the same moment.
+- **`Container`, `Rule`, `SectionHeading`, `EmptyState`** — 1240px measure, 40px gutter,
+  and the 2px rule that opens and closes every block.
+- **`Thumb`** — the product image slot. Swap the inner span for an `<Image>` the day the
+  catalogue grows a photo column; nothing outside that file cares what fills the block.
+- **`QuantityStepper`** — shared by the detail page and the cart rows, so the two can't
+  disagree about the ceiling.
 
-Motion is one shared cue: a small lift plus a deepening shadow on hover. Animations are
-declared as `--animate-*` tokens in `globals.css` and are all decorative, so a global
-`prefers-reduced-motion` block switches them off without losing information.
+Motion is a short set of entrances declared as `--animate-fx-*` tokens: `fx-lift` for a
+page heading, `fx-rule-x` for the rule under it, `fx-bar` for a stock fill, `fx-dot` for a
+live square, `fx-wipe` for a hero. All decorative, so the global `prefers-reduced-motion`
+block switches them off without losing information.
 
-**Tailwind v4 note:** gradients are `bg-linear-to-*`, not the v3 `bg-gradient-to-*`.
+**Tailwind v4 note:** gradients are `bg-linear-to-*`, not the v3 `bg-gradient-to-*` — though
+the storefront no longer uses any.
 
 ---
 

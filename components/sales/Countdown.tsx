@@ -8,13 +8,29 @@ import { useIsClient } from "@/app/lib/local-store";
 /**
  * Ticking countdown to the end of a sale.
  *
- * The server renders at build time and the browser hydrates anywhere from
+ * One monospaced `HH:MM:SS` clock, not four labelled boxes. The design treats
+ * the remaining time as a number in a column — it has to line up against the
+ * clock in the row above it and stay the same width as the seconds roll over,
+ * which is what the tabular figures in `.fx-mono` are for. Hours accumulate
+ * past 24 rather than splitting off a days segment, so the string never changes
+ * shape mid-sale.
+ *
+ * The server renders at request time and the browser hydrates anywhere from
  * seconds to days later, so any clock-derived output would differ between the
  * two. `useIsClient` is false for the server render and the hydrating render,
  * which keeps the first paint identical on both sides; the real time only
  * appears on the re-render immediately after.
  */
-export default function Countdown({ endsAt }: { endsAt: string }) {
+export default function Countdown({
+  endsAt,
+  endedLabel = "Closed",
+  className = "",
+}: {
+  endsAt: string;
+  /** Shown once the target has passed. */
+  endedLabel?: string;
+  className?: string;
+}) {
   const isClient = useIsClient();
 
   // Initialised at mount so the first client render is already accurate,
@@ -28,54 +44,34 @@ export default function Countdown({ endsAt }: { endsAt: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  if (!isClient) {
-    return <Shell segments={[null, null, null, null]} />;
-  }
+  const parts = isClient ? countdownParts(endsAt, now) : null;
 
-  const parts = countdownParts(endsAt, now);
-
-  if (!parts) {
-    return (
-      <p className="rounded-xl bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-500">
-        This sale has ended.
-      </p>
-    );
-  }
+  // Em-dashes rather than zeroes before hydration: 00:00:00 would read as an
+  // expired sale for the one frame it is on screen.
+  const label = !isClient
+    ? "––:––:––"
+    : parts
+      ? clock(parts)
+      : endedLabel;
 
   return (
-    <Shell
-      segments={[
-        { value: parts.days, label: "Days" },
-        { value: parts.hours, label: "Hours" },
-        { value: parts.minutes, label: "Mins" },
-        { value: parts.seconds, label: "Secs" },
-      ]}
-    />
+    <span
+      className={`fx-mono ${!isClient || parts ? "" : "fx-muted"} ${className}`}
+      // The value changes every second; announcing each tick would be unusable.
+      aria-live="off"
+    >
+      {label}
+    </span>
   );
 }
 
-const labels = ["Days", "Hours", "Mins", "Secs"];
+const pad = (value: number) => String(value).padStart(2, "0");
 
-function Shell({
-  segments,
-}: {
-  segments: ({ value: number; label: string } | null)[];
-}) {
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {segments.map((segment, index) => (
-        <div
-          key={labels[index]}
-          className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-center"
-        >
-          <div className="font-mono text-2xl font-bold tabular-nums text-slate-900">
-            {segment ? String(segment.value).padStart(2, "0") : "––"}
-          </div>
-          <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">
-            {segment?.label ?? labels[index]}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+function clock({
+  days,
+  hours,
+  minutes,
+  seconds,
+}: NonNullable<ReturnType<typeof countdownParts>>) {
+  return `${pad(days * 24 + hours)}:${pad(minutes)}:${pad(seconds)}`;
 }

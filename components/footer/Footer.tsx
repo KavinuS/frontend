@@ -28,28 +28,30 @@ const groups = [
   },
 ];
 
+/**
+ * Four columns under a 2px rule: the brand statement takes one and a half, the
+ * three link groups share the rest. Each group heading is ruled off rather than
+ * boxed, which is the same device the page headings above use — so the footer
+ * reads as the last section of the page rather than as a separate slab.
+ */
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-slate-200 bg-white">
-      <Container className="py-14">
-
+    <footer className="mt-auto border-t-2 border-fx-divider bg-fx-bg pb-8 pt-14">
+      <Container>
         <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(3,1fr)]">
-
           <div>
             <Link
               href="/"
-              className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900"
+              className="flex items-center gap-2.5 font-heading text-lg font-extrabold text-fx-ink"
             >
               <span
                 aria-hidden="true"
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-orange-400 to-orange-600 text-base shadow-sm shadow-orange-500/30"
-              >
-                ⚡
-              </span>
-              FlashX
+                className="block h-3.5 w-3.5 bg-fx-accent"
+              />
+              FLASHX
             </Link>
 
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-600">
+            <p className="fx-muted mt-4 max-w-[34ch] text-sm">
               A high-concurrency flash sale and inventory engine. Atomic Redis
               reservations, asynchronous order persistence, zero overselling.
             </p>
@@ -57,16 +59,16 @@ export default function Footer() {
 
           {groups.map((group) => (
             <div key={group.heading}>
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h2 className="fx-eyebrow border-b-2 border-fx-divider pb-3">
                 {group.heading}
-              </h3>
+              </h2>
 
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-3.5 grid gap-2.5 text-sm">
                 {group.links.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-slate-600 transition-colors hover:text-slate-900"
+                      className="text-fx-ink hover:text-fx-accent"
                     >
                       {link.label}
                     </Link>
@@ -77,15 +79,12 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-6 sm:flex-row">
-          <p className="text-sm text-slate-500">
-            © 2026 FlashX. All rights reserved.
-          </p>
-          <p className="text-xs text-slate-400">
+        <div className="mt-10 flex flex-wrap justify-between gap-6 border-t border-fx-divider pt-4.5 text-xs">
+          <span className="fx-muted">© 2026 FlashX. All rights reserved.</span>
+          <span className="fx-muted">
             Built with Next.js 16, React 19, and Tailwind CSS 4.
-          </p>
+          </span>
         </div>
-
       </Container>
     </footer>
   );

@@ -10,15 +10,15 @@ export const metadata: Metadata = {
 
 export default function CartPage() {
   return (
-    <Container className="py-12 lg:py-16">
-      <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-        Your cart
+    <Container className="pb-22 pt-14">
+      <h1 className="animate-fx-lift text-[clamp(40px,5vw,60px)] tracking-[-0.03em]">
+        Cart
       </h1>
-      <p className="mt-2 text-slate-600">
+      <p className="fx-muted mt-2">
         Nothing here is reserved yet — stock is claimed atomically at checkout.
       </p>
 
-      <div className="mt-10">
+      <div className="mt-8">
         <CartView />
       </div>
     </Container>

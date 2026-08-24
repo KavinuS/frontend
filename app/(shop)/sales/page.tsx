@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 
-import { listFlashSales, liveOnly, upcomingOnly } from "@/app/lib/catalog";
-import FlashSaleCard from "@/components/flashSalesCard/FlashSalesCard";
-import UpcomingDeals from "@/components/upcomingDeals/UpcomingDeals";
-import { Badge, LiveDot } from "@/components/ui/Badge";
-import { Container, EmptyState, SectionHeading } from "@/components/ui/Section";
+import { listFlashSales } from "@/app/lib/catalog";
+import SalesTable from "@/components/sales/SalesTable";
+import { Container, EmptyState } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
   title: "Flash Sales — FlashX",
@@ -12,63 +10,50 @@ export const metadata: Metadata = {
     "Every live and scheduled FlashX drop. Limited stock, atomic reservations.",
 };
 
+/**
+ * The catalogue board.
+ *
+ * The live/upcoming split this page used to have is gone: everything is one
+ * table now, filtered client-side. See `SalesTable` for why.
+ */
 export default async function SalesPage() {
   const catalogue = await listFlashSales();
 
-  const live = catalogue.ok ? liveOnly(catalogue.data) : [];
-  const upcoming = catalogue.ok ? upcomingOnly(catalogue.data) : [];
-
   return (
-    <>
-      <section className="border-b border-slate-200 bg-white">
-        <Container className="py-16">
-          <Badge tone="flash" className="px-4 py-1.5 text-sm">
-            <LiveDot />
-            {live.length} sale{live.length === 1 ? "" : "s"} running
-          </Badge>
+    <Container className="pb-22 pt-16">
+      <p className="fx-eyebrow tracking-[0.16em] text-fx-accent">Catalogue</p>
 
-          <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-900 lg:text-5xl">
-            Flash sales
-          </h1>
+      <h1 className="mt-3.5 animate-fx-lift text-[clamp(44px,6vw,72px)] tracking-[-0.03em]">
+        Flash sales
+      </h1>
 
-          <p className="mt-4 max-w-2xl text-lg text-slate-600">
-            Stock is pre-warmed into Redis before each sale opens, then
-            decremented atomically as orders land. What you see is what is left.
-          </p>
-        </Container>
-      </section>
+      <p className="fx-muted mt-3 max-w-[58ch]">
+        Every sale in the board — live, scheduled and closed. Stock counters are
+        claimed atomically at checkout, so the number beside a bar is the number
+        that counts.
+      </p>
 
-      <Container className="py-16">
-        <SectionHeading
-          eyebrow="Live now"
-          title="Open sales"
-          description="Reservations are first come, first served."
-        />
-
-        {!catalogue.ok ? (
+      {!catalogue.ok ? (
+        // Says what actually failed instead of rendering an empty table, which
+        // would read as "no sales" and is a different problem.
+        <div className="mt-10">
           <EmptyState
             icon="🔌"
             title="Can't reach the catalogue"
             description={catalogue.message}
           />
-        ) : live.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {live.map((product) => (
-              <FlashSaleCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
+        </div>
+      ) : catalogue.data.length === 0 ? (
+        <div className="mt-10">
           <EmptyState
             icon="😴"
-            title="No sales running right now"
-            description="Nothing is open at the moment. Check the scheduled drops below."
+            title="No sales on the board"
+            description="Nothing is running or scheduled at the moment. Check back before the next drop."
           />
-        )}
-      </Container>
-
-      {/* Only render the upcoming block when it has something in it — the
-          component already no-ops on an empty list. */}
-      {upcoming.length > 0 && <UpcomingDeals upcoming={upcoming} />}
-    </>
+        </div>
+      ) : (
+        <SalesTable products={catalogue.data} />
+      )}
+    </Container>
   );
 }

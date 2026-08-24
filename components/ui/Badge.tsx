@@ -1,13 +1,21 @@
 import type { OrderStatus } from "@/types/order";
 import type { SaleStatus } from "@/types/product";
 
+/**
+ * Tags, in the Modernist system's three flavours.
+ *
+ * The palette is deliberately thin — accent, neutral, outline — because the
+ * system has one accent colour and no semantic green/amber/red ramp. Meaning is
+ * carried by which of the three a status maps to plus the word itself, not by a
+ * hue the reader has to learn.
+ */
 const tones = {
-  flash: "bg-orange-50 text-orange-700 ring-orange-200",
-  brand: "bg-blue-50 text-blue-700 ring-blue-200",
-  success: "bg-green-50 text-green-700 ring-green-200",
-  warning: "bg-amber-50 text-amber-700 ring-amber-200",
-  danger: "bg-red-50 text-red-700 ring-red-200",
-  neutral: "bg-slate-100 text-slate-600 ring-slate-200",
+  /** Something happening now: live sales, orders mid-flight. */
+  accent: "fx-tag-accent",
+  /** Settled and no longer interesting: confirmed, sold out, ended. */
+  neutral: "fx-tag-neutral",
+  /** Not settled and not running — scheduled, or failed. */
+  outline: "fx-tag-outline",
 } as const;
 
 export type BadgeTone = keyof typeof tones;
@@ -22,21 +30,30 @@ export function Badge({
   children: React.ReactNode;
 }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${tones[tone]} ${className}`}
-    >
-      {children}
-    </span>
+    <span className={`fx-tag ${tones[tone]} ${className}`}>{children}</span>
   );
 }
 
-/** Pulsing dot for anything backed by a currently-running sale. */
-export function LiveDot({ className = "" }: { className?: string }) {
+/**
+ * Pulsing square for anything backed by a currently-running sale.
+ *
+ * A square, not a dot: the system has no rounded corners anywhere, and the same
+ * 7–10px accent square is the "live" mark on the nav, the detail page and the
+ * order timeline.
+ */
+export function LiveDot({
+  size = 8,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
-    <span className={`relative flex h-2 w-2 ${className}`}>
-      <span className="absolute inline-flex h-full w-full animate-pulse-dot rounded-full bg-current opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
-    </span>
+    <span
+      aria-hidden="true"
+      className={`block shrink-0 animate-fx-dot bg-fx-accent ${className}`}
+      style={{ width: size, height: size }}
+    />
   );
 }
 
@@ -44,8 +61,8 @@ const saleStatusConfig: Record<
   SaleStatus,
   { tone: BadgeTone; label: string; live: boolean }
 > = {
-  ACTIVE: { tone: "flash", label: "Live now", live: true },
-  SCHEDULED: { tone: "brand", label: "Scheduled", live: false },
+  ACTIVE: { tone: "accent", label: "Live", live: true },
+  SCHEDULED: { tone: "outline", label: "Scheduled", live: false },
   EXHAUSTED: { tone: "neutral", label: "Sold out", live: false },
   ENDED: { tone: "neutral", label: "Ended", live: false },
 };
@@ -55,7 +72,7 @@ export function SaleStatusBadge({ status }: { status: SaleStatus }) {
 
   return (
     <Badge tone={tone}>
-      {live && <LiveDot />}
+      {live && <LiveDot size={6} />}
       {label}
     </Badge>
   );
@@ -65,25 +82,24 @@ export function SaleStatusBadge({ status }: { status: SaleStatus }) {
  * Order status. The wording matters here — PENDING_PERSISTENCE means the stock
  * is genuinely reserved and only the database write is outstanding, so the copy
  * must reassure without claiming the order is complete.
+ *
+ * Note the mapping: Processing is the *accent* tag, Confirmed the neutral one.
+ * That inverts the usual "green means good" instinct on purpose — the row worth
+ * a second look is the one still in flight, not the one that already landed.
  */
 const orderStatusConfig: Record<
   OrderStatus,
-  { tone: BadgeTone; label: string; icon: string }
+  { tone: BadgeTone; label: string }
 > = {
-  PENDING_PERSISTENCE: { tone: "warning", label: "Processing", icon: "⏳" },
-  CONFIRMED: { tone: "success", label: "Confirmed", icon: "✓" },
-  FAILED: { tone: "danger", label: "Failed", icon: "✕" },
+  PENDING_PERSISTENCE: { tone: "accent", label: "Processing" },
+  CONFIRMED: { tone: "neutral", label: "Confirmed" },
+  FAILED: { tone: "outline", label: "Failed" },
 };
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  const { tone, label, icon } = orderStatusConfig[status];
+  const { tone, label } = orderStatusConfig[status];
 
-  return (
-    <Badge tone={tone}>
-      <span aria-hidden="true">{icon}</span>
-      {label}
-    </Badge>
-  );
+  return <Badge tone={tone}>{label}</Badge>;
 }
 
 export { orderStatusConfig };

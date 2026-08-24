@@ -13,16 +13,15 @@ export default async function OrdersPage() {
   const orders = await listMyOrders();
 
   return (
-    <Container className="py-12 lg:py-16">
-      <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-        My orders
+    <Container className="pb-22 pt-14">
+      <h1 className="animate-fx-lift text-[clamp(40px,5vw,60px)] tracking-[-0.03em]">
+        Orders
       </h1>
-      <p className="mt-2 max-w-2xl text-slate-600">
-        Every reservation, from the moment stock was claimed to the moment the
-        row landed in Postgres.
+      <p className="fx-muted mt-2 max-w-[58ch]">
+        Every reservation, with the status the persistence worker last reported.
       </p>
 
-      <div className="mt-10">
+      <div className="mt-7">
         {orders.ok ? (
           <OrdersView orders={orders.data} />
         ) : orders.status === 401 ? (

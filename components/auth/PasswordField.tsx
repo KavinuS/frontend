@@ -35,13 +35,11 @@ export default function PasswordField({
   const errorId = `${id}-error`;
 
   return (
-    <div>
-      <div className="mb-1.5 flex items-baseline justify-between gap-4">
-        <label htmlFor={id} className="text-sm font-medium text-slate-900">
-          {label}
-        </label>
+    <div className="fx-field">
+      <label htmlFor={id} className="flex items-baseline justify-between gap-4">
+        {label}
         {labelAction}
-      </div>
+      </label>
 
       <div className="relative">
         <input
@@ -52,11 +50,7 @@ export default function PasswordField({
           placeholder={placeholder}
           aria-invalid={invalid}
           aria-describedby={invalid ? errorId : undefined}
-          className={`w-full rounded-xl border bg-white px-4 py-3 pr-20 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-            invalid
-              ? "border-red-300 focus:border-red-500 focus:ring-red-200"
-              : "border-slate-200 focus:border-blue-500 focus:ring-blue-200"
-          }`}
+          className="fx-input pr-16"
         />
 
         <button
@@ -66,7 +60,7 @@ export default function PasswordField({
           // button; the toggle stays reachable by click and by shift-tab.
           tabIndex={-1}
           aria-controls={id}
-          className="absolute inset-y-0 right-0 px-4 text-sm font-semibold text-slate-500 hover:text-slate-900"
+          className="fx-muted absolute inset-y-0 right-0 px-3 text-xs uppercase tracking-[0.08em] hover:text-fx-ink"
         >
           {visible ? "Hide" : "Show"}
         </button>

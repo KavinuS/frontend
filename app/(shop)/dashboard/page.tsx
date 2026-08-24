@@ -14,7 +14,7 @@ export default async function DashboardPage() {
 
   if (!orders.ok && orders.status === 401) {
     return (
-      <Container className="py-12 lg:py-16">
+      <Container className="pb-22 pt-14">
         <EmptyState
           icon="🔐"
           title="Sign in to see your dashboard"
@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <Container className="py-12 lg:py-16">
+    <Container className="pb-22 pt-14">
       {/* A backend failure shows an empty dashboard rather than a crash; the
           orders page is where the error itself is reported. */}
       <DashboardView orders={orders.ok ? orders.data : []} />

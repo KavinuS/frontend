@@ -12,17 +12,31 @@ import TextField from "./TextField";
 export default function LoginForm({
   googleEnabled,
   next,
+  notice,
 }: {
   googleEnabled: boolean;
   /** Where to land after signing in, e.g. /admin. Validated server-side. */
   next?: string;
+  /**
+   * A failure that happened before this form was reached — currently a Google
+   * sign-in that came back empty-handed. It sits above the Google button
+   * rather than inside the password form, because that is the control it is
+   * actually reporting on.
+   */
+  notice?: string;
 }) {
   const [state, action, pending] = useActionState(login, undefined);
 
   return (
     <div className="space-y-6">
 
-      <GoogleButton label="Continue with Google" disabled={!googleEnabled} />
+      <FormBanner message={notice} />
+
+      <GoogleButton
+        label="Continue with Google"
+        disabled={!googleEnabled}
+        next={next}
+      />
 
       <Divider label="or" />
 
@@ -53,7 +67,7 @@ export default function LoginForm({
           labelAction={
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+              className="text-xs text-fx-accent hover:text-fx-accent-700"
             >
               Forgot password?
             </Link>

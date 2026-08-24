@@ -44,7 +44,10 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
     // layout: the chrome still renders, the cart reports itself empty, and the
     // page inside says what actually went wrong.
     <CartProvider catalogue={catalogue.ok ? catalogue.data : []}>
-      <div className="flex min-h-screen flex-col bg-slate-50">
+      {/* `fx-scope` opts this subtree into the Modernist design system — see
+          the block in app/globals.css. The admin console deliberately stays
+          outside it. */}
+      <div className="fx-scope flex min-h-screen flex-col">
         <Navbar
           session={
             claims && {

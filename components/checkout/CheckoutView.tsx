@@ -9,6 +9,20 @@ import { formatPrice } from "@/app/lib/format";
 import OrderSummary from "@/components/cart/OrderSummary";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/Section";
+import Thumb from "@/components/ui/Thumb";
+
+/**
+ * What the "Place order" button actually sets off. Shown, not hidden behind a
+ * spinner: the asynchronous hand-off is the whole point of this system, and a
+ * customer who understands why they got an ID before a confirmation will not
+ * read the pending state as a failure.
+ */
+const pipeline = [
+  "Redis runs an atomic DECR on the stock counter — sub-millisecond, no database lock.",
+  "If stock remains, an OrderCreatedEvent is pushed onto the queue.",
+  "You get 202 Accepted and a correlation ID straight away.",
+  "A background worker writes the order to Postgres in an ACID transaction.",
+];
 
 export default function CheckoutView() {
   const router = useRouter();
@@ -21,9 +35,7 @@ export default function CheckoutView() {
   >([]);
 
   if (!hydrated) {
-    return (
-      <div className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-    );
+    return <div className="h-72 animate-pulse border-2 border-fx-divider" />;
   }
 
   if (lines.length === 0) {
@@ -81,69 +93,70 @@ export default function CheckoutView() {
   };
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+    <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div>
+        <h2 className="fx-eyebrow border-b-2 border-fx-divider pb-3">
+          Items being reserved
+        </h2>
 
-      <div className="space-y-6">
+        <ul>
+          {lines.map((line) => (
+            <li
+              key={line.flashSaleId}
+              className="flex items-center gap-4.5 border-b border-fx-divider py-5"
+            >
+              <Thumb
+                emoji={line.emoji}
+                width={64}
+                height={56}
+                dimmed={line.soldOut || line.closed}
+              />
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">
-            Items being reserved
-          </h2>
-
-          <ul className="mt-5 divide-y divide-slate-100">
-            {lines.map((line) => (
-              <li
-                key={line.flashSaleId}
-                className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
-              >
-                <span
-                  aria-hidden="true"
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-slate-100 to-slate-200 text-2xl"
-                >
-                  {line.emoji}
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-slate-900">
-                    {line.name}
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-heading font-extrabold">
+                  {line.name}
+                </p>
+                <p className="fx-muted mt-0.75 text-[13px]">
+                  Qty {line.quantity} × {formatPrice(line.unitPrice)}
+                </p>
+                {(line.soldOut || line.closed) && (
+                  <p className="mt-1 font-heading text-[13px] font-extrabold text-fx-accent-800">
+                    {line.soldOut
+                      ? "Sold out since you added it"
+                      : "This sale has closed"}
                   </p>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    Qty {line.quantity} × {formatPrice(line.unitPrice)}
-                  </p>
-                  {(line.soldOut || line.closed) && (
-                    <p className="mt-1 text-sm font-semibold text-red-600">
-                      {line.soldOut
-                        ? "Sold out since you added it"
-                        : "This sale has closed"}
-                    </p>
-                  )}
-                </div>
+                )}
+              </div>
 
-                <span className="font-semibold text-slate-900">
-                  {formatPrice(line.lineTotal)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+              <span className="font-heading font-extrabold">
+                {formatPrice(line.lineTotal)}
+              </span>
+            </li>
+          ))}
+        </ul>
 
-        {/* The engineering story is the point of this project, so the checkout
-            explains what is about to happen rather than hiding it. */}
-        <section className="rounded-2xl border border-blue-200 bg-blue-50/60 p-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-blue-900">
+        <section className="mt-11 border-t-2 border-fx-divider pt-6.5">
+          <h2 className="fx-eyebrow text-fx-accent">
             What happens when you place this order
           </h2>
 
-          <ol className="mt-4 space-y-3 text-sm text-blue-900/80">
-            {[
-              "Redis runs an atomic DECR on the stock counter — sub-millisecond, no database lock.",
-              "If stock remains, an OrderCreatedEvent is pushed onto the queue.",
-              "You get 202 Accepted and a correlation ID straight away.",
-              "A background worker writes the order to Postgres in an ACID transaction.",
-            ].map((step, index) => (
-              <li key={step} className="flex gap-3">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-                  {index + 1}
+          {/* Two by two, divided by hairlines rather than numbered bullets in a
+              tinted panel: the four steps are one mechanism, not a list of
+              tips, and the grid makes the hand-off at step 02 visible. */}
+          <ol className="mt-5.5 grid list-none p-0 sm:grid-cols-2">
+            {pipeline.map((step, index) => (
+              <li
+                key={step}
+                className={[
+                  "border-b border-fx-divider py-5",
+                  index % 2 === 0 ? "sm:border-r sm:pr-6" : "sm:pl-6",
+                  // The last row keeps its rule on mobile, where the items are
+                  // stacked, and drops it on the two-column layout.
+                  index >= 2 ? "sm:border-b-0" : "",
+                ].join(" ")}
+              >
+                <span className="mb-2 block font-heading font-extrabold text-fx-accent">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
                 {step}
               </li>
@@ -152,63 +165,59 @@ export default function CheckoutView() {
         </section>
       </div>
 
-      <div className="lg:sticky lg:top-24 lg:self-start">
-        <OrderSummary
-          subtotal={subtotal}
-          savings={savings}
-          itemCount={itemCount}
-          footer={
-            <>
-              <Button
-                variant="flash"
-                size="lg"
-                fullWidth
-                // Disabled while in flight. The idempotency key is minted per
-                // attempt on the server, so two clicks would be two distinct
-                // reservations rather than one deduped by the UNIQUE index.
-                disabled={blocked || pending}
-                onClick={handlePlaceOrder}
+      <OrderSummary
+        subtotal={subtotal}
+        savings={savings}
+        itemCount={itemCount}
+        footer={
+          <>
+            <Button
+              fullWidth
+              className="px-4.5 py-3.5"
+              // Disabled while in flight. The idempotency key is minted per
+              // attempt on the server, so two clicks would be two distinct
+              // reservations rather than one deduped by the UNIQUE index.
+              disabled={blocked || pending}
+              onClick={handlePlaceOrder}
+            >
+              {pending ? "Reserving stock…" : "Place order"}
+            </Button>
+
+            {rejected.length > 0 && (
+              <div
+                role="alert"
+                className="mt-3 bg-fx-accent-100 px-4 py-3 text-[13px] text-fx-accent-800"
               >
-                {pending ? "Reserving stock…" : "Place order"}
-              </Button>
-
-              {rejected.length > 0 && (
-                <div
-                  role="alert"
-                  className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-left"
-                >
-                  <p className="text-sm font-semibold text-red-900">
-                    {rejected.length === 1 && !rejected[0].name
-                      ? "Checkout failed"
-                      : "Some items could not be reserved"}
-                  </p>
-                  <ul className="mt-1.5 space-y-1 text-sm text-red-800">
-                    {rejected.map((line, index) => (
-                      <li key={line.flashSaleId || index}>
-                        {line.name && (
-                          <span className="font-medium">{line.name}: </span>
-                        )}
-                        {line.message}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {blocked && (
-                <p className="mt-3 text-center text-sm text-red-600">
-                  An item in your cart can no longer be reserved. Remove it in
-                  the cart to continue.
+                <p className="font-heading font-extrabold">
+                  {rejected.length === 1 && !rejected[0].name
+                    ? "Checkout failed"
+                    : "Some items could not be reserved"}
                 </p>
-              )}
+                <ul className="mt-1.5 grid gap-1">
+                  {rejected.map((line, index) => (
+                    <li key={line.flashSaleId || index}>
+                      {line.name && <span>{line.name}: </span>}
+                      {line.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-              <p className="mt-4 text-center text-xs text-slate-500">
-                No payment is taken — this is a concurrency demo, not a store.
+            {blocked && (
+              <p className="mt-3 text-[13px] text-fx-accent-800">
+                An item in your cart can no longer be reserved. Remove it in the
+                cart to continue.
               </p>
-            </>
-          }
-        />
-      </div>
+            )}
+
+            <p className="fx-muted mt-3.5 text-xs">
+              Stock is claimed atomically at checkout. Two clicks would be two
+              reservations, so the button locks while in flight.
+            </p>
+          </>
+        }
+      />
     </div>
   );
 }

@@ -57,7 +57,7 @@ export default function RegisterForm({
         {/* Only shown once the user has something to fix — the rules are long
             enough that listing them up front crowds the form. */}
         {!state?.errors?.password && (
-          <p className="-mt-2 text-xs text-slate-500">
+          <p className="fx-muted -mt-2 text-xs">
             Use 8+ characters with a letter, a number, and a special character.
           </p>
         )}
@@ -71,7 +71,7 @@ export default function RegisterForm({
         />
 
         <div>
-          <label htmlFor="terms" className="flex items-start gap-3 text-sm text-slate-600">
+          <label htmlFor="terms" className="fx-muted flex items-start gap-3 text-sm">
             <input
               id="terms"
               name="terms"
@@ -80,15 +80,15 @@ export default function RegisterForm({
               aria-describedby={
                 state?.errors?.terms?.length ? "terms-error" : undefined
               }
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-200"
+              className="mt-1 h-4 w-4 shrink-0 rounded-none accent-fx-accent"
             />
             <span>
               I agree to the{" "}
-              <Link href="/terms" className="font-medium text-blue-600 hover:text-blue-700">
+              <Link href="/terms" className="text-fx-accent hover:text-fx-accent-700">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="font-medium text-blue-600 hover:text-blue-700">
+              <Link href="/privacy" className="text-fx-accent hover:text-fx-accent-700">
                 Privacy Policy
               </Link>
               .

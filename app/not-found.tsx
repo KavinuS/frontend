@@ -5,40 +5,33 @@ import { ButtonLink } from "@/components/ui/Button";
 /**
  * Root 404. It carries its own minimal chrome rather than the shop layout,
  * because a not-found can be triggered from any route group — including the
- * auth pages, which deliberately have no navbar.
+ * auth pages, which deliberately have no navbar. That means it also has to opt
+ * into `fx-scope` itself.
  */
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 text-center">
-
+    <main className="fx-scope flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <Link
         href="/"
-        className="mb-10 flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900"
+        className="mb-10 flex items-center gap-2.5 font-heading text-lg font-extrabold text-fx-ink"
       >
-        <span
-          aria-hidden="true"
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-orange-400 to-orange-600 text-base shadow-sm shadow-orange-500/30"
-        >
-          ⚡
-        </span>
-        FlashX
+        <span aria-hidden="true" className="block h-3.5 w-3.5 bg-fx-accent" />
+        FLASHX
       </Link>
 
-      <p className="font-mono text-sm font-semibold uppercase tracking-widest text-orange-600">
-        404
-      </p>
+      <p className="fx-mono fx-eyebrow text-fx-accent">404</p>
 
-      <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900">
+      <h1 className="mt-3 text-[clamp(36px,6vw,56px)] tracking-[-0.03em]">
         This page sold out
       </h1>
 
-      <p className="mt-3 max-w-md text-slate-600">
+      <p className="fx-muted mt-3 max-w-[46ch]">
         We couldn&apos;t find what you were looking for. It may have been moved,
         or the sale may have ended.
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <ButtonLink href="/sales" variant="flash" size="lg">
+        <ButtonLink href="/sales" size="lg">
           Browse flash sales
         </ButtonLink>
         <ButtonLink href="/" variant="secondary" size="lg">

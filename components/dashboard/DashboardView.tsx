@@ -7,6 +7,7 @@ import { formatDateTime, formatPrice, shortId } from "@/app/lib/format";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/Section";
+import Thumb from "@/components/ui/Thumb";
 import type { Order } from "@/types/order";
 
 /**
@@ -18,9 +19,9 @@ export default function DashboardView({ orders }: { orders: Order[] }) {
 
   if (!cartHydrated) {
     return (
-      <div className="space-y-6">
-        <div className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-        <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+      <div className="grid gap-8">
+        <div className="h-28 animate-pulse border-y-2 border-fx-divider" />
+        <div className="h-64 animate-pulse bg-fx-surface" />
       </div>
     );
   }
@@ -38,102 +39,114 @@ export default function DashboardView({ orders }: { orders: Order[] }) {
   );
 
   const stats = [
-    { label: "Total orders", value: String(orders.length), tone: "text-slate-900" },
-    { label: "Confirmed", value: String(confirmed.length), tone: "text-green-600" },
-    { label: "Processing", value: String(pending.length), tone: "text-amber-600" },
-    { label: "Total spent", value: formatPrice(totalSpent), tone: "text-blue-600" },
+    { label: "Total orders", value: String(orders.length), accent: false },
+    { label: "Confirmed", value: String(confirmed.length), accent: false },
+    // The one accented figure on the page: an order still in flight is the only
+    // number here that might change while you are looking at it.
+    { label: "Processing", value: String(pending.length), accent: true },
+    { label: "Total spent", value: formatPrice(totalSpent), accent: false },
   ];
 
   const recent = orders.slice(0, 4);
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-8">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+          <h1 className="animate-fx-lift text-[clamp(40px,5vw,60px)] tracking-[-0.03em]">
             Dashboard
           </h1>
-          <p className="mt-2 text-slate-600">
-            Your reservations, at a glance.
-          </p>
+          <p className="fx-muted mt-2">Your reservations, at a glance.</p>
         </div>
 
-        <ButtonLink href="/sales" variant="flash">
+        <ButtonLink href="/sales" className="px-5 py-3.5">
           Shop flash sales
         </ButtonLink>
       </div>
 
-      <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+      {/* One ruled band, four cells split by hairlines — not four cards. The
+          figures are meant to be read across as one row, and a card each would
+          put a gutter between numbers that belong to the same sentence. */}
+      <dl className="mt-11 grid grid-cols-2 border-y-2 border-fx-divider md:grid-cols-4">
+        {stats.map((stat, index) => (
           <div
             key={stat.label}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            className={[
+              "border-fx-divider px-6 py-6 first:pl-0 last:pr-0",
+              // Vertical rules: between the pair at 2-up, between every cell
+              // at 4-up. Only the first cell never has one.
+              index % 2 === 1 ? "border-l" : index > 0 ? "md:border-l" : "",
+              // Horizontal rule: only exists while the stats wrap to two rows.
+              index < 2 ? "border-b md:border-b-0" : "",
+            ].join(" ")}
           >
-            <dt className="text-xs font-medium uppercase tracking-wider text-slate-500">
+            <dt className="fx-muted fx-eyebrow tracking-[0.12em]">
               {stat.label}
             </dt>
-            <dd className={`mt-2 text-3xl font-bold ${stat.tone}`}>
+            <dd
+              className={`mt-2.5 font-heading text-[40px] font-extrabold ${
+                stat.accent ? "text-fx-accent" : ""
+              }`}
+            >
               {stat.value}
             </dd>
           </div>
         ))}
       </dl>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900">Recent orders</h2>
-            <Link
-              href="/orders"
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-            >
+      <div className="mt-12 grid items-start gap-12 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <section>
+          <div className="flex items-baseline justify-between border-b-2 border-fx-divider pb-3.5">
+            <h2 className="text-2xl">Recent orders</h2>
+            <ButtonLink href="/orders" variant="ghost">
               View all
-            </Link>
+            </ButtonLink>
           </div>
 
           {recent.length === 0 ? (
-            <div className="mt-6">
-              <EmptyState
-                icon="📦"
-                title="No orders yet"
-                description="Your reservations will appear here."
-                actionLabel="Shop flash sales"
-                actionHref="/sales"
-              />
-            </div>
+            <EmptyState
+              icon="📦"
+              title="No orders yet"
+              description="Your reservations will appear here."
+              actionLabel="Shop flash sales"
+              actionHref="/sales"
+            />
           ) : (
-            <ul className="mt-5 divide-y divide-slate-100">
-              {recent.map((order) => (
-                <li key={order.id}>
+            <ul>
+              {recent.map((order, index) => (
+                <li
+                  key={order.id}
+                  className={
+                    index === recent.length - 1
+                      ? "border-b-2 border-fx-divider"
+                      : "border-b border-fx-divider"
+                  }
+                >
                   <Link
                     href={`/orders/${order.id}`}
-                    className="flex flex-wrap items-center justify-between gap-3 py-4 transition-opacity hover:opacity-70"
+                    className="flex items-center gap-5 py-5"
                   >
-                    <div className="flex items-center gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-slate-100 to-slate-200 text-lg"
-                      >
-                        {order.lines[0]?.emoji ?? "📦"}
-                      </span>
+                    <Thumb
+                      emoji={order.lines[0]?.emoji ?? "📦"}
+                      width={56}
+                      height={46}
+                      dimmed={order.status === "FAILED"}
+                    />
 
-                      <div>
-                        <p className="font-mono text-sm font-semibold text-slate-900">
-                          #{shortId(order.id)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDateTime(order.placedAt)}
-                        </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="fx-mono text-sm">
+                        #{shortId(order.id)}
+                      </div>
+                      <div className="fx-muted mt-0.75 text-xs">
+                        {formatDateTime(order.placedAt)}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <OrderStatusBadge status={order.status} />
-                      <span className="w-20 text-right font-semibold text-slate-900">
-                        {formatPrice(order.totalAmount)}
-                      </span>
-                    </div>
+                    <OrderStatusBadge status={order.status} />
+
+                    <span className="w-20 text-right font-heading font-extrabold">
+                      {formatPrice(order.totalAmount)}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -141,11 +154,10 @@ export default function DashboardView({ orders }: { orders: Order[] }) {
           )}
         </section>
 
-        <div className="space-y-6">
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Your cart</h2>
-            <p className="mt-2 text-sm text-slate-600">
+        <div className="grid gap-8">
+          <section className="border-2 border-fx-divider p-6">
+            <h2 className="text-xl">Your cart</h2>
+            <p className="fx-muted mt-2 text-sm">
               {itemCount === 0
                 ? "Nothing in your cart right now."
                 : `${itemCount} item${itemCount === 1 ? "" : "s"} waiting to be reserved.`}
@@ -155,35 +167,39 @@ export default function DashboardView({ orders }: { orders: Order[] }) {
               href={itemCount === 0 ? "/sales" : "/cart"}
               variant={itemCount === 0 ? "secondary" : "primary"}
               fullWidth
-              className="mt-4"
+              className="mt-4.5 px-4.5 py-3"
             >
               {itemCount === 0 ? "Browse sales" : "Go to cart"}
             </ButtonLink>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">Account</h2>
+          <section className="border-2 border-fx-divider p-6">
+            <h2 className="text-xl">Account</h2>
 
-            <dl className="mt-4 space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-slate-500">Session</dt>
-                <dd className="font-semibold text-slate-900">Local only</dd>
+            <dl className="mt-3.5 text-sm">
+              <div className="flex justify-between border-b border-fx-divider py-2.5">
+                <dt className="fx-muted">Session</dt>
+                <dd>flashx_session</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">Order history</dt>
-                <dd className="font-semibold text-slate-900">
+              <div className="flex justify-between border-b border-fx-divider py-2.5">
+                <dt className="fx-muted">Order history</dt>
+                <dd>
                   {orders.length} record{orders.length === 1 ? "" : "s"}
                 </dd>
+              </div>
+              <div className="flex justify-between py-2.5">
+                <dt className="fx-muted">Confirmed</dt>
+                <dd>{confirmed.length}</dd>
               </div>
             </dl>
 
             <ButtonLink
-              href="/login"
+              href="/profile"
               variant="secondary"
               fullWidth
-              className="mt-5"
+              className="mt-4 px-4.5 py-3"
             >
-              Manage sign-in
+              Manage account
             </ButtonLink>
           </section>
         </div>

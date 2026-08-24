@@ -10,11 +10,56 @@
   --foreground: #0f172a; /* slate-900 */
 
   /* Brand ramp. Blue carries the product/system voice, orange the flash-sale
-     urgency. Kept as tokens so a rebrand is one block, not a find-and-replace. */
+     urgency. Kept as tokens so a rebrand is one block, not a find-and-replace.
+     Retained for the admin console, which is not part of the storefront design
+     system below. */
   --brand: #2563eb; /* blue-600   */
   --brand-strong: #1d4ed8; /* blue-700   */
   --flash: #f97316; /* orange-500 */
   --flash-strong: #ea580c; /* orange-600 */
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Modernist — the storefront design system.
+
+   Ported from the Claude Design project (`_ds/modernist-…/styles.css`) that
+   `FlashX Storefront.dc.html` is drawn against. Everything here is namespaced
+   `fx-` so it can sit alongside the admin console's Tailwind palette without
+   either one reaching into the other.
+
+   The look in one line: off-white ground, near-black ink, a single hot red
+   accent, Archivo at weight 800 for every heading, zero corner radius, and
+   hairline rules instead of cards and shadows.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --color-fx-bg: #f3f2f2;
+  --color-fx-surface: #eae9e9;
+  --color-fx-ink: #201e1d;
+
+  --color-fx-accent: #ec3013;
+  --color-fx-accent-100: #fff2ef;
+  --color-fx-accent-200: #ffe0d9;
+  --color-fx-accent-300: #ffc4b8;
+  --color-fx-accent-600: #dd2b0f;
+  --color-fx-accent-700: #ae1800;
+  --color-fx-accent-800: #7c1405;
+
+  --color-fx-neutral-100: #f8f4f4;
+  --color-fx-neutral-200: #eae7e7;
+  --color-fx-neutral-300: #d7d3d3;
+  --color-fx-neutral-500: #9b9797;
+  --color-fx-neutral-700: #605d5d;
+  --color-fx-neutral-800: #444141;
+  --color-fx-neutral-900: #2d2b2b;
+
+  /* Two derived inks. `divider` is the hairline every rule in the system is
+     drawn with; `muted` is the only secondary text colour. */
+  --color-fx-divider: color-mix(in srgb, #201e1d 40%, transparent);
+  --color-fx-muted: color-mix(in srgb, #201e1d 55%, transparent);
+
+  --font-heading: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --font-body: var(--font-archivo), "Archivo", system-ui, sans-serif;
 }
 
 @theme inline {
@@ -32,12 +77,285 @@
   --animate-rise: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
   --animate-shimmer: shimmer 2.2s linear infinite;
+
+  /* The storefront's own entrance set, matched to the design source. */
+  --animate-fx-lift: fx-lift 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fx-rule-x: fx-rule-x 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  --animate-fx-bar: fx-bar 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+  --animate-fx-dot: fx-dot 2s ease-in-out infinite;
+  --animate-fx-wipe: fx-wipe 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/*
+ * The design system's own token names, aliased onto the `fx-` scale above.
+ * The component classes further down are lifted from the source stylesheet and
+ * refer to these; keeping both names means a retune happens in exactly one
+ * place (`@theme`) and still reaches the ported CSS.
+ */
+:root {
+  --color-bg: var(--color-fx-bg);
+  --color-surface: var(--color-fx-surface);
+  --color-text: var(--color-fx-ink);
+  --color-accent: var(--color-fx-accent);
+  --color-divider: var(--color-fx-divider);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+/*
+ * `.fx-scope` is the storefront's opt-in. It carries the element-level rules
+ * (type scale, focus ring, selection colour) that the design system states
+ * globally — scoped here rather than on `body` so the admin console, which is
+ * still Tailwind-on-slate, is untouched by them.
+ */
+.fx-scope {
+  background: var(--color-fx-bg);
+  color: var(--color-fx-ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.fx-scope h1,
+.fx-scope h2,
+.fx-scope h3,
+.fx-scope h4,
+.fx-scope h5,
+.fx-scope h6 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.fx-scope :focus-visible {
+  outline: 2px solid var(--color-fx-accent);
+  outline-offset: 2px;
+}
+
+.fx-scope ::selection {
+  background: color-mix(in srgb, var(--color-fx-accent) 30%, transparent);
+}
+
+@layer components {
+  /* — buttons —
+     One shape for every action: heading font, flat, square, no shadow. The
+     variant only changes the fill, which is what keeps a row of mixed actions
+     reading as one control strip. */
+  .fx-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1.2;
+    color: var(--color-fx-ink);
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 8px 15px;
+    border-radius: 0;
+    white-space: nowrap;
+  }
+  .fx-btn:disabled,
+  .fx-btn[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .fx-btn-primary {
+    background: var(--color-fx-accent);
+    color: var(--color-fx-bg);
+  }
+  .fx-btn-primary:not(:disabled):not([aria-disabled="true"]):hover {
+    background: var(--color-fx-accent-600);
+  }
+  .fx-btn-primary:not(:disabled):not([aria-disabled="true"]):active {
+    background: var(--color-fx-accent-700);
+  }
+
+  .fx-btn-secondary {
+    border-color: var(--color-fx-divider);
+  }
+  .fx-btn-secondary:not(:disabled):not([aria-disabled="true"]):hover {
+    background: color-mix(in srgb, var(--color-fx-ink) 7%, transparent);
+  }
+  .fx-btn-secondary:not(:disabled):not([aria-disabled="true"]):active {
+    background: color-mix(in srgb, var(--color-fx-ink) 14%, transparent);
+  }
+
+  .fx-btn-ghost {
+    color: var(--color-fx-accent);
+    padding-inline: 4px;
+  }
+  .fx-btn-ghost:not(:disabled):not([aria-disabled="true"]):hover {
+    background: color-mix(in srgb, var(--color-fx-accent) 10%, transparent);
+  }
+
+  /* Full-width actions in the summary rails are left-aligned, not centred —
+     they read as items in a stack rather than as isolated buttons. */
+  .fx-btn-block {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  /* — forms — */
+  .fx-field > label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 5px;
+    color: color-mix(in srgb, var(--color-fx-ink) 70%, transparent);
+  }
+
+  .fx-input {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--color-fx-ink);
+    caret-color: var(--color-fx-accent);
+    background: var(--color-fx-surface);
+    border: 1px solid var(--color-fx-divider);
+    border-radius: 0;
+  }
+  .fx-input::placeholder {
+    color: var(--color-fx-muted);
+  }
+  .fx-input:hover {
+    border-color: color-mix(in srgb, var(--color-fx-ink) 45%, transparent);
+  }
+  .fx-input:focus-visible {
+    border-color: var(--color-fx-accent);
+    outline-offset: 0;
+  }
+  .fx-input[aria-invalid="true"] {
+    border-color: var(--color-fx-accent);
+  }
+
+  /* — segmented filter —
+     Radios under the hood, so the group is keyboard- and screen-reader-native
+     and the checked style needs no JavaScript. */
+  .fx-seg {
+    display: inline-flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--color-fx-divider);
+  }
+  .fx-seg-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .fx-seg-opt + .fx-seg-opt {
+    border-left: 1px solid var(--color-fx-divider);
+  }
+  .fx-seg-opt input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .fx-seg-opt:has(input:checked) {
+    background: var(--color-fx-accent);
+    color: var(--color-fx-bg);
+  }
+  .fx-seg-opt:not(:has(input:checked)):hover {
+    background: color-mix(in srgb, var(--color-fx-ink) 7%, transparent);
+  }
+  .fx-seg-opt:has(input:focus-visible) {
+    outline: 2px solid var(--color-fx-accent);
+    outline-offset: -2px;
+  }
+
+  /* — tags — */
+  .fx-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+  .fx-tag-accent {
+    background: var(--color-fx-accent-100);
+    color: var(--color-fx-accent-800);
+  }
+  .fx-tag-neutral {
+    background: var(--color-fx-neutral-100);
+    color: var(--color-fx-neutral-800);
+  }
+  .fx-tag-outline {
+    border: 1px solid var(--color-fx-accent);
+    color: var(--color-fx-accent);
+  }
+
+  /* — navigation — */
+  .fx-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 2px solid var(--color-fx-divider);
+  }
+
+  /* — tables —
+     `fx-` prefixed rather than the source's `.table`, which would collide with
+     Tailwind's `display: table` utility of the same name. */
+  .fx-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .fx-table th {
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-fx-muted);
+    padding: 8px;
+    border-bottom: 2px solid var(--color-fx-divider);
+  }
+  .fx-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--color-fx-divider);
+  }
+  .fx-table tbody tr:hover {
+    background: color-mix(in srgb, var(--color-fx-ink) 4%, transparent);
+  }
+
+  /* — text — */
+  .fx-muted {
+    color: var(--color-fx-muted);
+  }
+
+  /* The system's one recurring label: 11px, wide-tracked, uppercase, heading
+     weight. Used for eyebrows, column headings and stat captions alike. */
+  .fx-eyebrow {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .fx-mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* Entrance animation for cards and page sections. */
@@ -72,6 +390,53 @@ body {
   }
   to {
     transform: translateX(100%);
+  }
+}
+
+/* — the storefront's entrance set — */
+@keyframes fx-lift {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fx-rule-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes fx-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes fx-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+@keyframes fx-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
   }
 }
 

@@ -4,9 +4,11 @@ import Link from "next/link";
 
 import { MAX_PER_ITEM, useCart, type CartLine } from "@/app/lib/cart-context";
 import { formatPrice } from "@/app/lib/format";
+import OrderSummary from "@/components/cart/OrderSummary";
+import QuantityStepper from "@/components/cart/QuantityStepper";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/Section";
-import OrderSummary from "@/components/cart/OrderSummary";
+import Thumb from "@/components/ui/Thumb";
 
 export default function CartView() {
   const { lines, hydrated, subtotal, savings, itemCount, clear } = useCart();
@@ -27,227 +29,169 @@ export default function CartView() {
     );
   }
 
-  // Sold-out lines block checkout: the reservation would fail at the backend
-  // anyway, so it is better to say so here than to bounce the user later.
   // Sold out AND closed both block checkout: the reservation script refuses
   // either, so letting the button through would just produce a failed order.
-  const blockedLines = lines.filter((line) => line.soldOut || line.closed);
+  const blocked = lines.filter((line) => line.soldOut || line.closed);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-
+    <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-slate-600">
+        <div className="flex items-center justify-between border-b-2 border-fx-divider pb-3">
+          <h2 className="fx-eyebrow">
             {itemCount} item{itemCount === 1 ? "" : "s"}
-          </p>
+          </h2>
 
-          <Button variant="danger" size="sm" onClick={clear}>
+          <Button variant="ghost" onClick={clear}>
             Clear cart
           </Button>
         </div>
 
-        <ul className="space-y-3">
+        <ul>
           {lines.map((line) => (
             <CartRow key={line.flashSaleId} line={line} />
           ))}
         </ul>
       </div>
 
-      <div className="lg:sticky lg:top-24 lg:self-start">
-        <OrderSummary
-          subtotal={subtotal}
-          savings={savings}
-          itemCount={itemCount}
-          footer={
-            <>
-              <ButtonLink
-                href="/checkout"
-                variant="flash"
-                size="lg"
-                fullWidth
-                // A sold-out line makes checkout pointless; aria-disabled keeps
-                // the link in the tab order while marking it unavailable.
-                aria-disabled={blockedLines.length > 0}
-                className={
-                  blockedLines.length > 0
-                    ? "pointer-events-none opacity-50"
-                    : ""
-                }
-              >
-                Proceed to checkout
-              </ButtonLink>
+      <OrderSummary
+        subtotal={subtotal}
+        savings={savings}
+        itemCount={itemCount}
+        footer={
+          <>
+            <ButtonLink
+              href="/checkout"
+              fullWidth
+              // A blocked line makes checkout pointless. `aria-disabled` marks
+              // it unavailable and `.fx-btn[aria-disabled]` dims it, but a link
+              // with that attribute still navigates — `pointer-events-none`
+              // plus removing it from the tab order is what actually stops it.
+              className={`px-4.5 py-3.5 ${
+                blocked.length > 0 ? "pointer-events-none" : ""
+              }`}
+              aria-disabled={blocked.length > 0}
+              tabIndex={blocked.length > 0 ? -1 : undefined}
+            >
+              Proceed to checkout
+            </ButtonLink>
 
-              {blockedLines.length > 0 && (
-                <p className="mt-3 text-center text-sm text-red-600">
-                  Remove the sold-out item{blockedLines.length === 1 ? "" : "s"}{" "}
-                  to continue.
-                </p>
-              )}
+            {blocked.length > 0 && (
+              <p className="mt-3 text-[13px] text-fx-accent-800">
+                Remove the sold-out item{blocked.length === 1 ? "" : "s"} to
+                continue.
+              </p>
+            )}
 
-              <ButtonLink
-                href="/sales"
-                variant="ghost"
-                size="md"
-                fullWidth
-                className="mt-2"
-              >
-                Continue shopping
-              </ButtonLink>
-            </>
-          }
-        />
-      </div>
+            <ButtonLink
+              href="/sales"
+              variant="secondary"
+              fullWidth
+              className="mt-2 px-4.5 py-3"
+            >
+              Continue shopping
+            </ButtonLink>
+          </>
+        }
+      />
     </div>
   );
 }
 
+/**
+ * One cart line.
+ *
+ * A blocked line is not styled as an error and left there — it is promoted. The
+ * accent wash and the solid Remove button make it the loudest thing in the
+ * list, because it is the only thing standing between the customer and
+ * checkout.
+ */
 function CartRow({ line }: { line: CartLine }) {
   const { setQuantity, removeItem } = useCart();
+  const blocked = line.soldOut || line.closed;
 
   return (
     <li
-      className={`flex gap-4 rounded-2xl border bg-white p-4 shadow-sm sm:p-5 ${
-        line.soldOut || line.closed
-          ? "border-red-200 bg-red-50/40"
-          : "border-slate-200"
-      }`}
+      className={
+        blocked
+          ? "flex flex-wrap items-center gap-5 border-b-2 border-fx-accent bg-fx-accent-100 px-3 py-5.5"
+          : "flex flex-wrap items-center gap-5 border-b border-fx-divider py-5.5"
+      }
     >
-      <Link
-        href={`/sales/${line.sku}`}
-        className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-slate-100 to-slate-200 text-3xl"
-        aria-hidden="true"
-      >
-        {line.emoji}
+      <Link href={`/sales/${line.sku}`} tabIndex={-1} aria-hidden="true">
+        <Thumb emoji={line.emoji} width={88} height={72} dimmed={blocked} />
       </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-40 flex-1">
+        <Link
+          href={`/sales/${line.sku}`}
+          className="font-heading text-lg font-extrabold text-fx-ink hover:text-fx-accent"
+        >
+          {line.name}
+        </Link>
 
-        <div className="min-w-0">
-          <h3 className="truncate font-semibold text-slate-900">
-            <Link href={`/sales/${line.sku}`} className="hover:text-blue-600">
-              {line.name}
-            </Link>
-          </h3>
+        <div className="fx-mono fx-muted mt-1 text-[11px]">
+          {line.sku}
+          {!blocked && ` · ${formatPrice(line.unitPrice)} each`}
+        </div>
 
-          <p className="mt-0.5 font-mono text-xs text-slate-400">{line.sku}</p>
-
-          {line.soldOut || line.closed ? (
-            <p className="mt-1.5 text-sm font-semibold text-red-600">
-              Sold out — remove to continue
+        {blocked ? (
+          <p className="mt-1.5 font-heading text-[13px] font-extrabold text-fx-accent-800">
+            {line.soldOut
+              ? "Sold out — remove to continue"
+              : "Sale closed — remove to continue"}
+          </p>
+        ) : (
+          // Say why the + is greyed out — scarcity and the per-customer cap are
+          // different messages and the user can act on the first.
+          line.atMax && (
+            <p className="mt-1.5 text-xs text-fx-accent-700">
+              {line.remainingStock < MAX_PER_ITEM
+                ? `Only ${line.remainingStock} left in this sale`
+                : `Limit ${MAX_PER_ITEM} per customer`}
             </p>
-          ) : (
-            <>
-              <p className="mt-1.5 text-sm text-slate-500">
-                {formatPrice(line.unitPrice)} each
-              </p>
-
-              {/* Say why the + is greyed out — scarcity and the per-customer
-                  cap are different messages and the user can act on the first. */}
-              {line.atMax && (
-                <p className="mt-1 text-xs font-semibold text-amber-600">
-                  {line.remainingStock < MAX_PER_ITEM
-                    ? `Only ${line.remainingStock} left in this sale`
-                    : `Limit ${MAX_PER_ITEM} per customer`}
-                </p>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4">
-
-          <div className="flex items-center rounded-xl border border-slate-200">
-            <QuantityButton
-              label={`Decrease quantity of ${line.name}`}
-              disabled={line.soldOut || line.closed}
-              onClick={() =>
-                setQuantity(line.flashSaleId, line.quantity - 1)
-              }
-            >
-              −
-            </QuantityButton>
-
-            <span className="w-9 text-center font-mono text-sm font-semibold tabular-nums text-slate-900">
-              {line.quantity}
-            </span>
-
-            {/* `atMax` already folds in both ceilings — the per-customer cap
-                and the remaining stock, whichever bites first. */}
-            <QuantityButton
-              label={`Increase quantity of ${line.name}`}
-              disabled={line.soldOut || line.closed || line.atMax}
-              onClick={() =>
-                setQuantity(line.flashSaleId, line.quantity + 1)
-              }
-            >
-              +
-            </QuantityButton>
-          </div>
-
-          <div className="w-20 text-right font-semibold text-slate-900">
-            {formatPrice(line.lineTotal)}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => removeItem(line.flashSaleId)}
-            aria-label={`Remove ${line.name} from cart`}
-            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                d="M3 4h10M6.5 4V2.5h3V4M5 4l.6 9h4.8L11 4"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-            </svg>
-          </button>
-        </div>
+          )
+        )}
       </div>
-    </li>
-  );
-}
 
-function QuantityButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      className="flex h-9 w-9 items-center justify-center text-lg font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-    >
-      {children}
-    </button>
+      {!blocked && (
+        <QuantityStepper
+          value={line.quantity}
+          onChange={(next) => setQuantity(line.flashSaleId, next)}
+          canDecrease
+          // `atMax` already folds in both ceilings — the per-customer cap and
+          // the remaining stock, whichever bites first.
+          canIncrease={!line.atMax}
+          label={`quantity of ${line.name}`}
+        />
+      )}
+
+      <div className="w-23 text-right font-heading text-lg font-extrabold">
+        {formatPrice(line.lineTotal)}
+      </div>
+
+      <Button
+        variant={blocked ? "primary" : "ghost"}
+        onClick={() => removeItem(line.flashSaleId)}
+        aria-label={`Remove ${line.name} from cart`}
+      >
+        Remove
+      </Button>
+    </li>
   );
 }
 
 function CartSkeleton() {
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-      <div className="space-y-3">
+    <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div>
         {[0, 1].map((index) => (
           <div
             key={index}
-            className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-white"
+            className="h-28 animate-pulse border-b border-fx-divider bg-fx-surface"
           />
         ))}
       </div>
-      <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+      <div className="h-72 animate-pulse border-2 border-fx-divider" />
     </div>
   );
 }

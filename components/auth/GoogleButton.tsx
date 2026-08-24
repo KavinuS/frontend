@@ -15,12 +15,21 @@ import { signInWithGoogle } from "@/app/actions/auth";
 export default function GoogleButton({
   label,
   disabled = false,
+  next,
 }: {
   label: string;
   disabled?: boolean;
+  /** Where to land afterwards, e.g. /admin. Validated server-side. */
+  next?: string;
 }) {
   return (
     <form action={signInWithGoogle}>
+      {/* Carried through the form for the same reason the password form does
+          it: a Server Action cannot see the caller's search params. The action
+          parks it in a cookie, because the OAuth round trip has nowhere to put
+          it. */}
+      {next && <input type="hidden" name="next" value={next} />}
+
       <GoogleSubmit label={label} disabled={disabled} />
     </form>
   );
@@ -44,7 +53,7 @@ function GoogleSubmit({
       title={
         disabled ? "Google sign-in requires the backend to be configured." : undefined
       }
-      className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3 font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+      className="fx-btn fx-btn-secondary fx-btn-block gap-3 px-4.5 py-3.5"
     >
       <GoogleLogo />
       {pending ? "Redirecting…" : label}

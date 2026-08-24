@@ -1,10 +1,11 @@
 import Link from "next/link";
 
 import { discountPercent, formatPrice } from "@/app/lib/format";
-import type { Product } from "@/types/product";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container, SectionHeading } from "@/components/ui/Section";
+import Thumb from "@/components/ui/Thumb";
+import type { Product } from "@/types/product";
 
 /**
  * Scheduled drops. The list is passed in rather than fetched here so the page
@@ -29,35 +30,30 @@ export default function UpcomingDeals({ upcoming }: { upcoming: Product[] }) {
         }
       />
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-8 md:grid-cols-3">
         {upcoming.map((product) => (
           <Link
             key={product.id}
             href={`/sales/${product.sku}`}
-            className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-900/5"
+            className="group border-t-2 border-fx-divider pt-4"
           >
-            <div className="mb-5 flex h-36 items-center justify-center rounded-xl bg-linear-to-br from-slate-100 to-slate-200">
-              <span
-                aria-hidden="true"
-                className="text-5xl transition-transform duration-300 group-hover:scale-110"
-              >
-                {product.emoji}
-              </span>
+            <Thumb emoji={product.emoji} height={160} />
+
+            <div className="mt-4">
+              <Badge tone="outline">Scheduled</Badge>
             </div>
 
-            <Badge tone="brand">Scheduled</Badge>
-
-            <h3 className="mt-3 text-lg font-bold tracking-tight text-slate-900 group-hover:text-blue-600">
+            <h3 className="mt-3 text-lg group-hover:text-fx-accent">
               {product.name}
             </h3>
 
-            <p className="mt-1 text-sm text-slate-600">{product.tagline}</p>
+            <p className="fx-muted mt-1 text-sm">{product.tagline}</p>
 
-            <div className="mt-4 flex items-baseline justify-between">
-              <span className="text-lg font-bold text-slate-900">
+            <div className="mt-4 flex items-baseline justify-between border-t border-fx-divider pt-3">
+              <span className="font-heading text-lg font-extrabold">
                 {formatPrice(product.salePrice)}
               </span>
-              <span className="text-sm font-semibold text-orange-600">
+              <span className="text-sm text-fx-accent-700">
                 {discountPercent(product.originalPrice, product.salePrice)}% off
               </span>
             </div>

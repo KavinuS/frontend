@@ -9,8 +9,8 @@ import {
   RegisterFormSchema,
   type AuthFormState,
 } from "@/app/lib/definitions";
-import { safeRedirectPath } from "@/app/lib/redirects";
-import { createSession, deleteSession, readClaims } from "@/app/lib/session";
+import { landingFor, safeRedirectPath } from "@/app/lib/redirects";
+import { createSession, deleteSession, stashOAuthNext } from "@/app/lib/session";
 
 /**
  * Auth Server Actions.
@@ -19,20 +19,6 @@ import { createSession, deleteSession, readClaims } from "@/app/lib/session";
  * password is out of the client bundle and out of the URL. Each action returns
  * an `AuthFormState` that `useActionState` renders as inline field errors.
  */
-
-/**
- * Where a freshly signed-in account belongs.
- *
- * An admin has no use for the customer dashboard — the console is the reason
- * they signed in — so the landing page follows the role rather than being the
- * same for everyone. This is a convenience, not a control: `/admin` is still
- * gated by `requireAdmin()`, and every `/api/v1/admin/**` endpoint re-checks the
- * role against the token signature. A forged `role: "ADMIN"` claim buys a
- * redirect to a page that immediately bounces it.
- */
-function landingFor(token: string) {
-  return readClaims(token)?.role === "ADMIN" ? "/admin" : "/dashboard";
-}
 
 export async function register(
   _prevState: AuthFormState,
@@ -149,16 +135,26 @@ async function startSession(data: AuthSuccess): Promise<string | null> {
 }
 
 /**
- * Hands the browser off to the backend, which owns the Google OAuth exchange
- * and drops the session cookie before sending the user back to /dashboard.
+ * Hands the browser off to the backend, which owns the Google OAuth exchange.
+ *
+ * The client secret and the code-for-token exchange stay on the backend; this
+ * side only starts the trip. auth-service finishes it by redirecting to
+ * `/auth/callback`, which is where the session cookie is actually written.
  */
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData?: FormData) {
   const url = googleOAuthUrl();
 
   if (!url) {
     // The button is disabled when unconfigured; this covers a direct POST.
     return;
   }
+
+  // Parked in a cookie because there is no room for it in the OAuth round trip
+  // — see stashOAuthNext. Validated on the way out as well as on the way back,
+  // so a junk value never reaches the cookie in the first place. An empty
+  // fallback means "no destination", which clears any stale cookie.
+  const next = safeRedirectPath(formData?.get("next"), "");
+  await stashOAuthNext(next || undefined);
 
   redirect(url);
 }

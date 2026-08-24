@@ -3,16 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 
 import { MAX_PER_ITEM, useCart, type AddResult } from "@/app/lib/cart-context";
-import { Button, type ButtonVariant } from "@/components/ui/Button";
+import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/Button";
 
 /**
  * Adds a product to the cart and reports what actually happened.
  *
- * The inline feedback is deliberate: the only other signal is the navbar badge,
- * which is easy to miss on a long page and off-screen on mobile once the user
- * has scrolled past a card. It also has to distinguish "added" from "you
- * already have the maximum" — flashing "Added ✓" when the cart didn't change
- * is a small lie the user would only discover at checkout.
+ * The inline feedback is deliberate: the only other signal is the "Cart / n"
+ * count in the header, which is easy to miss on a long page and off-screen on
+ * mobile once the user has scrolled down the board. It also has to distinguish
+ * "added" from "you already have the maximum" — flashing "Added" when the cart
+ * didn't change is a small lie the user would only discover at checkout.
  */
 export default function AddToCartButton({
   flashSaleId,
@@ -22,6 +22,7 @@ export default function AddToCartButton({
   variant = "primary",
   size,
   fullWidth = false,
+  className = "",
   onAdded,
 }: {
   /** The sale to reserve against, not the product. See cart-store.ts. */
@@ -30,8 +31,9 @@ export default function AddToCartButton({
   disabled?: boolean;
   label?: string;
   variant?: ButtonVariant;
-  size?: "sm" | "md" | "lg";
+  size?: ButtonSize;
   fullWidth?: boolean;
+  className?: string;
   /** Lets a parent react to the outcome (e.g. reset a quantity stepper). */
   onAdded?: (result: AddResult) => void;
 }) {
@@ -61,10 +63,13 @@ export default function AddToCartButton({
   const needsExplanation = Boolean(feedback && (!feedback.ok || feedback.clamped));
 
   return (
-    <div>
+    <div className={`${fullWidth ? "w-full" : ""} ${className}`}>
       <Button
         onClick={handleClick}
         disabled={disabled}
+        // Confirmation flips the fill to the outlined variant for two seconds.
+        // Same size, same position — only the weight of the button changes, so
+        // the row it sits in does not reflow.
         variant={feedback?.ok ? "secondary" : variant}
         size={size}
         fullWidth={fullWidth}
@@ -81,9 +86,7 @@ export default function AddToCartButton({
       <p
         aria-live="polite"
         className={
-          needsExplanation
-            ? "mt-2 text-center text-xs font-semibold text-amber-600"
-            : "sr-only"
+          needsExplanation ? "mt-1.5 text-xs text-fx-accent-700" : "sr-only"
         }
       >
         {feedback ? describe(feedback) : ""}
