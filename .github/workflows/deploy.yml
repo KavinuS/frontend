@@ -40,9 +40,16 @@ jobs:
         run: npm run lint
 
       - name: Typecheck
-        # `next build` type-checks too, but running tsc first fails in seconds
-        # instead of after a full compile.
-        run: npx tsc --noEmit
+        # `PageProps` and `LayoutProps` are globals Next generates from the app
+        # router into .next/types, which tsconfig.json pulls in via `include`.
+        # A clean checkout has no .next, so `tsc` alone cannot resolve them —
+        # `typegen` writes them without paying for a full build.
+        #
+        # `next build` type-checks as well, but running tsc first fails in
+        # seconds instead of after a full compile.
+        run: |
+          npx next typegen
+          npx tsc --noEmit
 
       - name: Build
         env:
