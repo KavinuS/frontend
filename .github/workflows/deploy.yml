@@ -44,12 +44,27 @@ jobs:
 
       - name: Build Next.js static export
         env:
+          # This repo publishes as a *project* site, so the whole app is served
+          # from https://<user>.github.io/<repo>/ rather than the domain root.
+          # `configure-pages` reports that prefix, and next.config.ts turns it
+          # into `basePath` — without it every /_next/* asset 404s. Reading it
+          # from the step output rather than hardcoding "/frontend" keeps the
+          # build correct if the repo is renamed or moved to a custom domain
+          # (where base_path is empty).
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
           # `output: "export"` inlines everything at build time, so any value the
           # pages need has to be present here — not at request time.
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
           PUBLIC_API_BASE_URL: ${{ secrets.PUBLIC_API_BASE_URL }}
           NEXT_TELEMETRY_DISABLED: "1"
         run: npm run build
+
+      - name: Disable Jekyll processing
+        # Next writes its assets to `_next/`, and anything with a leading
+        # underscore is invisible to Jekyll. The Pages artifact path does not
+        # run Jekyll today, but this file costs nothing and removes the failure
+        # mode entirely.
+        run: touch ./out/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
