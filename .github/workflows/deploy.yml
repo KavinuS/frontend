@@ -64,7 +64,7 @@ jobs:
     name: Deploy to Vercel
     needs: ci
     # PRs get the CI job only. Deploying is reserved for what has landed.
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
     runs-on: ubuntu-latest
     environment:
       name: production
