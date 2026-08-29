@@ -5,13 +5,16 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  # Lets you re-run a deploy from the Actions tab without pushing a commit.
   workflow_dispatch:
 
+# Least privilege at the top; the deploy job widens this for itself.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# One run at a time per branch. Superseded PR runs are cancelled, but pushes to
+# main are not: a commit that lands mid-deploy still ships rather than being
+# dropped.
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -39,6 +42,13 @@ jobs:
         run: npm run lint
 
       - name: Typecheck
+        # `PageProps` and `LayoutProps` are globals Next generates from the app
+        # router into .next/types, which tsconfig.json pulls in via `include`.
+        # A clean checkout has no .next, so `tsc` alone cannot resolve them —
+        # `typegen` writes them without paying for a full build.
+        #
+        # `next build` type-checks as well, but running tsc first fails in
+        # seconds instead of after a full compile.
         run: |
           npx next typegen
           npx tsc --noEmit
@@ -46,25 +56,56 @@ jobs:
       - name: Build Next.js
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+        # No API_BASE_URL here on purpose. This app is server-rendered, so the
+        # backend URL is read per request at runtime, not inlined at build time
+        # — the build only needs to compile. The real value is configured on the
+        # host (Vercel project env vars, or docker-compose for the container).
         run: npm run build
 
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./out
-
   deploy:
-    name: Deploy to GitHub Pages
+    name: Deploy to Vercel
     needs: ci
+    # PRs get the ci job only. Deploying is reserved for what has landed.
     if: github.event_name != 'pull_request'
 
     runs-on: ubuntu-latest
 
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment
+        # Fetches the project's production env vars and build settings, so the
+        # build below matches what the dashboard is configured with. API_BASE_URL
+        # and PUBLIC_API_BASE_URL are set there rather than as GitHub secrets —
+        # they are needed at request time by the running server, not just here.
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        # Building here rather than on Vercel means this workflow is the single
+        # gate: nothing reaches production that did not pass the ci job first.
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        id: deploy
+        # --prebuilt uploads the artifact built in the previous step instead of
+        # rebuilding from source.
+        run: echo "url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
